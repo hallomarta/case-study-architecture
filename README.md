@@ -67,15 +67,28 @@ src/
 
 ## 📝 Tasks Breakdown
 
-### Task 1: User Entity
+### Task 1: User and Identity Entities
+
+#### User Entity
 Complete the `User` entity in `src/entities/user.ts` with the following fields:
 - `id` (UUID, auto-generated)
 - `email` (string, unique)
-- `password` (string, hashed)
 - `firstName` (string)
 - `lastName` (string)
 - `createdAt` (timestamp)
 - `updatedAt` (timestamp)
+
+#### UserIdentity Entity
+Create the `UserIdentity` entity in `src/entities/user-identity.ts` with the following fields:
+- `id` (UUID, auto-generated)
+- `userId` (UUID, foreign key to User)
+- `provider` (string, e.g., 'password' for local authentication)
+- `passwordHash` (string, hashed password)
+- `lastLoginAt` (timestamp, nullable)
+- `createdAt` (timestamp)
+- `updatedAt` (timestamp)
+
+**Note:** Separating authentication credentials from user profile data prevents accidental exposure of sensitive information and follows security best practices.
 
 ### Task 2: Password Manager Service
 Implement the `PasswordManagerService` in `src/services/password-manager-service.ts`:
@@ -96,12 +109,18 @@ Implement the `UserService` in `src/services/user-service.ts`:
 - `getProfile(userId: string)`: Get user profile
 - `updateProfile(userId: string, data: UpdateProfileDto)`: Update user profile
 
-### Task 5: User Controller
+### Task 5: Controllers
+
+#### User Controller
 Implement the `UserController` in `src/controllers/user-controller.ts`:
 - `POST /users/register` - Register a new user
 - `POST /users/login` - Authenticate and get JWT token
 - `GET /users/profile` - Get current user profile (protected)
 - `PUT /users/profile` - Update current user profile (protected)
+
+<!-- #### Token Controller
+Implement the `TokenController` in `src/controllers/token-controller.ts`:
+- `POST /token/refresh` - Refresh access token using refresh token -->
 
 ### Task 6: Authentication Middleware
 Create a middleware to protect routes that require authentication:
