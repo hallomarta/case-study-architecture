@@ -1,0 +1,25 @@
+{
+    "compilerOptions": {
+        "baseUrl": "./src",
+        "outDir": "./dist",
+        "sourceMap": true,
+        "noImplicitAny": false,
+        "target": "es5",
+        "lib": ["es2016", "dom"],
+        "module": "commonjs",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "removeComments": true,
+        "strictPropertyInitialization": false,
+        "preserveConstEnums": true,
+        "allowJs": true,
+        "strict": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "types": ["reflect-metadata", "node", "@types/jest"],
+        "typeRoots": ["node_modules/@types", "src/@types"]
+    },
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "**/*.test.ts"]
+}
