@@ -1,14 +1,10 @@
-import {
-    controller,
-    httpGet,
-    BaseHttpController,
-} from 'inversify-express-utils';
+import { Controller, Get } from '@inversifyjs/http-core';
 
-@controller('/health-check')
-export abstract class BaseController extends BaseHttpController {
+@Controller('/health-check')
+export class BaseController {
     // service health check
-    @httpGet('/')
+    @Get('/')
     public async healthCheck() {
-        return this.json({ message: 'Service is up and running' }, 200);
+        return { message: 'Service is up and running' };
     }
 }

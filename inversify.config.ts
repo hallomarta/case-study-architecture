@@ -1,6 +1,6 @@
 import { Container } from 'inversify';
 
-import './src/lib/base-controller';
+import { BaseController } from './src/lib/base-controller';
 // import './src/controllers';
 
 // import {
@@ -16,6 +16,9 @@ import './src/lib/base-controller';
 // import { TYPES } from './src/lib';
 
 export const diContainer = new Container();
+
+// Register controllers
+diContainer.bind(BaseController).toSelf().inSingletonScope();
 
 // // bind services
 // diContainer.bind<ExampleService>(TYPES.ExampleService).to(ExampleServiceImpl);

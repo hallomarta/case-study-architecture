@@ -7,48 +7,44 @@
   "license": "MIT",
   "scripts": {
     "lint": "eslint . --ext .ts",
-    "dev:build": "tsc -w",
-    "dev:start": "nodemon ./dist/src/index.js",
-    "dev": "concurrently npm:dev:*",
+    "dev": "nodemon --exec ts-node src/index.ts",
     "build": "rimraf ./dist && tsc",
     "start": "node ./dist/src/index.js",
     "test": "jest -c ./jest.config.json",
     "test:watch": "jest -c ./jest.config.json --watchAll=true"
   },
   "devDependencies": {
-    "@marta/release-scripts": "git+ssh://git@github.com:hallomarta/release-scripts.git#master",
-    "@types/body-parser": "^1.19.2",
-    "@types/express": "^4.17.17",
-    "@types/supertest": "^2.0.12",
-    "@typescript-eslint/eslint-plugin": "^5.56.0",
-    "@typescript-eslint/parser": "^5.56.0",
-    "concurrently": "^7.6.0",
-    "eslint": "^8.36.0",
-    "eslint-plugin-jest": "^27.2.1",
-    "husky": "^8.0.3",
-    "jest": "^29.5.0",
-    "lint-staged": "^13.2.0",
-    "nodemon": "^2.0.22",
-    "prettier": "^2.8.7",
-    "supertest": "^6.3.3",
-    "ts-jest": "^29.0.5",
-    "typescript-eslint": "^0.0.1-alpha.0"
+    "@types/body-parser": "^1.19.6",
+    "@types/express": "^5.0.6",
+    "@types/supertest": "^6.0.3",
+    "@typescript-eslint/eslint-plugin": "^8.50.0",
+    "@typescript-eslint/parser": "^8.50.0",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.2",
+    "eslint-plugin-jest": "^29.5.0",
+    "husky": "^9.1.7",
+    "jest": "^30.2.0",
+    "lint-staged": "^16.2.7",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.7.4",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript-eslint": "^8.50.0"
   },
   "dependencies": {
-    "@aws-sdk/client-ssm": "^3.303.0",
-    "@marta/eventbus": "git+ssh://git@github.com:hallomarta/eventbus.git#develop",
-    "@types/jest": "^29.5.0",
-    "@types/node": "^18.15.10",
-    "body-parser": "^1.20.2",
-    "dotenv": "^16.0.3",
-    "express": "^4.18.2",
-    "inversify": "^6.0.1",
-    "inversify-express-utils": "^6.4.3",
-    "pg": "^8.10.0",
-    "reflect-metadata": "^0.1.13",
-    "rimraf": "^5.0.0",
-    "typeorm": "^0.3.12",
-    "typescript": "^5.0.2"
+    "@inversifyjs/http-core": "^4.8.1",
+    "@inversifyjs/http-express": "^4.8.1",
+    "@inversifyjs/logger": "^1.1.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.0.3",
+    "body-parser": "^2.2.1",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "inversify": "^7.10.7",
+    "reflect-metadata": "^0.2.2",
+    "typescript": "^5.9.3",
+    "winston": "^3.19.0"
   },
   "lint-staged": {
     "src/**/*.ts": [
@@ -60,5 +56,6 @@
     "hooks": {
       "pre-commit": "lint-staged"
     }
-  }
+  },
+  "packageManager": "yarn@4.12.0"
 }
