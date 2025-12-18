@@ -1,8 +1,8 @@
-# 🚀 Senior Developer Case Study
+# 🚀 Senior Full Stack Engineer Case Study
 
 ## User Authentication Service
 
-Welcome to the marta Senior Fullstack Developer technical case study. This repository contains a boilerplate microservice architecture that you will use to implement a **User Authentication Service**.
+Welcome to the marta Senior Full Stack Engineer technical case study. This repository contains a boilerplate microservice architecture that you will use to implement a **User Authentication Service**.
 
 ---
 
