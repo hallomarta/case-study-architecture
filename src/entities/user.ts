@@ -1,9 +1,25 @@
-import type { User as PrismaUser } from '@prisma/client';
+import type { User as PrismaUser, UserIdentity } from '@prisma/client';
 
-// Export the Prisma User type for use throughout the application
-export type User = PrismaUser;
+// Export the Prisma User type with optional identities relation
+export type User = PrismaUser & {
+    identities?: UserIdentity[];
+};
 
-// You can also create DTOs for creating/updating users
+/**
+ * Safe user type without sensitive identity data.
+ * Use this type for API responses and general application logic.
+ */
+export type SafeUser = Omit<User, 'identities'>;
+
+/**
+ * User with identity information (contains password hashes).
+ * Use ONLY for authentication flows where password verification is needed.
+ */
+export type UserWithIdentity = User & {
+    identities: UserIdentity[];
+};
+
+// DTOs for creating/updating users
 export interface CreateUserDto {
     email: string;
     password: string;

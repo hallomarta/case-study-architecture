@@ -1,1 +1,126 @@
-// Fill here
+import { inject } from 'inversify';
+import {
+    Controller,
+    Get,
+    Post,
+    Put,
+    Body,
+    UseGuard,
+    CreatedHttpResponse,
+    Request,
+    ApplyMiddleware,
+} from '@inversifyjs/http-core';
+import { ValidateStandardSchemaV1 } from '@inversifyjs/standard-schema-validation';
+import { LoginRateLimitMiddleware } from '../middleware/rate-limit-middleware';
+import { z } from 'zod';
+import type { Request as ExpressRequest } from 'express';
+import { TOKEN } from '../lib/tokens';
+import { getUser } from '../lib/request-utils';
+import type { UserService } from '../services/user-service';
+import { AuthGuard } from '../guards/auth-guard';
+
+// Validation schemas
+const registerSchema = z
+    .object({
+        email: z.string().email('Invalid email format'),
+        password: z
+            .string()
+            .min(8, 'Password must be at least 8 characters')
+            .max(128, 'Password must not exceed 128 characters')
+            .refine(val => /[a-z]/.test(val), {
+                message: 'Password must contain at least one lowercase letter',
+            })
+            .refine(val => /[A-Z]/.test(val), {
+                message: 'Password must contain at least one uppercase letter',
+            })
+            .refine(val => /\d/.test(val), {
+                message: 'Password must contain at least one number',
+            }),
+        firstName: z.string().min(1, 'First name is required'),
+        lastName: z.string().min(1, 'Last name is required'),
+    })
+    .strict();
+
+const loginSchema = z
+    .object({
+        email: z.string().email('Invalid email format'),
+        password: z.string().min(1, 'Password is required'),
+    })
+    .strict();
+
+const updateProfileSchema = z
+    .object({
+        firstName: z
+            .string()
+            .min(1, 'First name cannot be empty')
+            .optional()
+            .or(z.literal(undefined)),
+        lastName: z
+            .string()
+            .min(1, 'Last name cannot be empty')
+            .optional()
+            .or(z.literal(undefined)),
+    })
+    .strict()
+    .refine(
+        data => {
+            // Reject if firstName is provided but empty
+            if ('firstName' in data && data.firstName === '') {
+                return false;
+            }
+            // Reject if lastName is provided but empty
+            if ('lastName' in data && data.lastName === '') {
+                return false;
+            }
+            return true;
+        },
+        { message: 'Fields cannot be empty strings' }
+    );
+
+type RegisterDto = z.infer<typeof registerSchema>;
+type LoginDto = z.infer<typeof loginSchema>;
+type UpdateProfileDto = z.infer<typeof updateProfileSchema>;
+
+@Controller('/users')
+export class UserController {
+    constructor(@inject(TOKEN.UserService) private userService: UserService) { }
+
+    @Post('/register')
+    async register(
+        @Body()
+        @ValidateStandardSchemaV1(registerSchema)
+        userData: RegisterDto
+    ): Promise<CreatedHttpResponse> {
+        const user = await this.userService.register(userData);
+        return new CreatedHttpResponse(user);
+    }
+
+    @Post('/login')
+    @ApplyMiddleware(LoginRateLimitMiddleware)
+    async login(
+        @Body()
+        @ValidateStandardSchemaV1(loginSchema)
+        credentials: LoginDto
+    ) {
+        return this.userService.authenticate(credentials);
+    }
+
+    @Get('/profile')
+    @UseGuard(AuthGuard)
+    async getProfile(@Request() request: ExpressRequest) {
+        const userId = getUser(request).id;
+        return this.userService.getProfile(userId);
+    }
+
+    @Put('/profile')
+    @UseGuard(AuthGuard)
+    async updateProfile(
+        @Body()
+        @ValidateStandardSchemaV1(updateProfileSchema)
+        data: UpdateProfileDto,
+        @Request() request: ExpressRequest
+    ) {
+        const userId = getUser(request).id;
+        return this.userService.updateProfile(userId, data);
+    }
+}

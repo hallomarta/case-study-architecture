@@ -1,0 +1,17 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "commonjs",
+        "types": [
+            "jest",
+            "node",
+            "@suites/doubles.jest/unit",
+            "@suites/di.inversify"
+        ]
+    },
+    "include": [
+        "src/**/*.ts",
+        "tests/**/*.ts",
+        "global.d.ts"
+    ]
+}
