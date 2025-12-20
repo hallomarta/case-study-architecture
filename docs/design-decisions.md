@@ -4,10 +4,155 @@ This document outlines key architectural and security decisions made in this cas
 
 ## Table of Contents
 
-1. [Configuration Management](#configuration-management)
-2. [Refresh Token Rotation](#refresh-token-rotation)
-3. [Password Reset Flow](#password-reset-flow)
-4. [Logger Architecture](#logger-architecture)
+1. [Authentication Architecture](#authentication-architecture)
+2. [Configuration Management](#configuration-management)
+3. [Refresh Token Rotation](#refresh-token-rotation)
+4. [Password Reset Flow](#password-reset-flow)
+5. [Logger Architecture](#logger-architecture)
+
+---
+
+## Authentication Architecture
+
+### Overview
+
+The authentication service follows **OIDC-style conventions** for route naming while implementing an internal auth system. The architecture is designed to:
+
+1. **Separate concerns** between authentication, token management, session management, and user management
+2. **Enable future OAuth provider support** (Google, GitHub, etc.) without major refactoring
+3. **Follow recognizable patterns** from OAuth 2.0/OIDC specifications
+
+### Route Structure
+
+Routes are organized following common OAuth 2.0/OIDC conventions:
+
+| Route               | Method | Purpose                                                                                          |
+| ------------------- | ------ | ------------------------------------------------------------------------------------------------ |
+| `/oauth/token`      | POST   | Unified token endpoint (login via `grant_type=password`, refresh via `grant_type=refresh_token`) |
+| `/oauth/revoke`     | POST   | Revoke current session                                                                           |
+| `/oauth/revoke-all` | POST   | Revoke all sessions (custom extension)                                                           |
+| `/oauth/userinfo`   | GET    | Get authenticated user claims (OIDC standard)                                                    |
+| `/oauth/authorize`  | GET    | Future: Initiate OAuth flow with external providers                                              |
+| `/oauth/callback`   | GET    | Future: Single callback for all OAuth providers (Auth0 pattern)                                  |
+| `/users/register`   | POST   | User registration (local provider only)                                                          |
+| `/users/profile`    | PUT    | Update user profile                                                                              |
+| `/password/forgot`  | POST   | Request password reset                                                                           |
+| `/password/reset`   | POST   | Reset password with token                                                                        |
+
+**Note**: The OAuth 2.0 spec (RFC 6749) does not mandate specific URL paths—only endpoint behavior. We chose `/oauth/*` as it's the most recognizable convention used by Auth0, Okta, and others.
+
+### Service Separation
+
+```
+OAuthController
+    ↓
+OAuthService
+    ├→ IdentityProvider (LocalIdentityProvider)
+    │   ├→ PasswordManagerService
+    │   └→ UserRepository
+    ├→ TokenService
+    │   └→ Config
+    ├→ SessionService
+    │   ├→ TokenService
+    │   └→ RefreshTokenRepository
+    └→ UserService
+        ├→ PasswordManagerService
+        └→ UserRepository
+
+UserController
+    ↓
+UserService
+    ├→ PasswordManagerService
+    └→ UserRepository
+```
+
+| Service              | Responsibility                                                   |
+| -------------------- | ---------------------------------------------------------------- |
+| **OAuthService**     | OAuth 2.0 grant type workflows (password, refresh_token)         |
+| **TokenService**     | JWT generation (access_token, id_token), verification            |
+| **SessionService**   | Refresh token lifecycle: create, rotate, revoke, reuse detection |
+| **UserService**      | User CRUD operations only (no auth logic)                        |
+| **IdentityProvider** | Authentication strategy abstraction                              |
+
+### Identity Provider Pattern
+
+To support multiple authentication methods (local, Google, GitHub), we use a **Strategy pattern**:
+
+```typescript
+interface IdentityProvider {
+    name: string;
+    
+    // Local authentication
+    authenticate(credentials: { email: string; password: string }): Promise<User>;
+    
+    // OAuth providers (optional methods for future)
+    getAuthorizationUrl?(state: string, provider: string): string;
+    handleCallback?(code: string, provider: string): Promise<User>;
+}
+```
+
+**Current implementation**: `LocalIdentityProvider` handles email/password authentication.
+
+**Future OAuth support**: When adding Google login, create `GoogleIdentityProvider` implementing the same interface:
+
+```
+GET /oauth/authorize?provider=google
+  → GoogleIdentityProvider.getAuthorizationUrl(state)
+  → Redirect to Google
+
+GET /oauth/callback?code=xxx&state=yyy
+  → GoogleIdentityProvider.handleCallback(code)
+  → Find/create user, link identity
+  → Issue app tokens via TokenService
+```
+
+### Token Response Format
+
+The `/oauth/token` endpoint returns tokens following OAuth 2.0 conventions:
+
+```json
+{
+    "access_token": "eyJ...",
+    "token_type": "Bearer",
+    "expires_in": 900,
+    "refresh_token": "eyJ...",
+    "id_token": "eyJ..."
+}
+```
+
+The `id_token` is a JWT containing user identity claims (`sub`, `email`, `given_name`, `family_name`), allowing clients to decode user info without an additional API call.
+
+### Account Linking Strategy
+
+The existing `UserIdentity` model supports multiple providers per user:
+
+```prisma
+model UserIdentity {
+    id           String  @id
+    userId       String
+    provider     String  // "local", "google", "github"
+    providerId   String? // External user ID from OAuth provider
+    passwordHash String? // Only for local provider
+    user         User    @relation(...)
+}
+```
+
+**Auto-linking policy**: When a user authenticates with an OAuth provider (e.g., Google) using an email that already exists in the system:
+1. Link the new identity to the existing user account
+2. User can now log in with either method
+
+This avoids duplicate accounts and provides seamless multi-provider authentication.
+
+### Why This Architecture?
+
+| Decision                   | Rationale                                                               |
+| -------------------------- | ----------------------------------------------------------------------- |
+| OIDC-style routes          | Familiar conventions; easier migration to dedicated auth provider later |
+| Single `/oauth/callback`   | Auth0 pattern; simpler than per-provider callbacks                      |
+| Separate TokenService      | Centralized JWT logic; easier to modify token format/claims             |
+| Separate SessionService    | Isolates refresh token rotation/reuse detection complexity              |
+| IdentityProvider interface | Clean abstraction for adding OAuth providers                            |
+| `id_token` in response     | OIDC-compatible; client gets user info without extra call               |
 
 ---
 

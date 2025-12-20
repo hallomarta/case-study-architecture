@@ -6,11 +6,9 @@ import { InversifyExpressHttpAdapter } from '@inversifyjs/http-express';
 import { InversifyValidationErrorFilter } from '@inversifyjs/http-validation';
 import { StandardSchemaValidationPipe } from '@inversifyjs/standard-schema-validation';
 import { diContainer } from '../../inversify.config';
-import { getConfig } from './config';
+import { config } from './config';
 
 export async function getApp(): Promise<Application> {
-    const config = getConfig();
-
     const adapter = new InversifyExpressHttpAdapter(diContainer, {
         logger: config.nodeEnv !== 'test',
         useCookies: true,

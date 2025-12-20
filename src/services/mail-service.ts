@@ -1,15 +1,9 @@
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import { createLogger } from '../lib/logger';
-import { getConfig } from '../lib/config';
+import { TOKEN } from '../lib/tokens';
+import type { Config } from '../types/Config';
 
 const logger = createLogger('MailService');
-
-/**
- * Check if we should suppress console output (in test environment)
- */
-function shouldLog(): boolean {
-    return getConfig().nodeEnv !== 'test';
-}
 
 /**
  * Mail service interface for sending emails.
@@ -54,6 +48,8 @@ function maskEmail(email: string): string {
  */
 @injectable()
 export class ConsoleMailService implements MailService {
+    constructor(@inject(TOKEN.Config) private config: Config) {}
+
     async sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
         const maskedTo = maskEmail(to);
 
@@ -63,7 +59,7 @@ export class ConsoleMailService implements MailService {
         });
 
         // Log the full email content for development purposes (suppressed in tests)
-        if (shouldLog()) {
+        if (this.config.nodeEnv !== 'test') {
             console.log('\n' + '='.repeat(60));
             console.log('📧 PASSWORD RESET EMAIL');
             console.log('='.repeat(60));
@@ -96,7 +92,7 @@ export class ConsoleMailService implements MailService {
         });
 
         // Log the full email content for development purposes (suppressed in tests)
-        if (shouldLog()) {
+        if (this.config.nodeEnv !== 'test') {
             console.log('\n' + '='.repeat(60));
             console.log('📧 PASSWORD RESET CONFIRMATION');
             console.log('='.repeat(60));

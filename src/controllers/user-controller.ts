@@ -8,10 +8,8 @@ import {
     UseGuard,
     CreatedHttpResponse,
     Request,
-    ApplyMiddleware,
 } from '@inversifyjs/http-core';
 import { ValidateStandardSchemaV1 } from '@inversifyjs/standard-schema-validation';
-import { LoginRateLimitMiddleware } from '../middleware/rate-limit-middleware';
 import { z } from 'zod';
 import type { Request as ExpressRequest } from 'express';
 import { TOKEN } from '../lib/tokens';
@@ -27,13 +25,6 @@ const registerSchema = z
         password: passwordSchema,
         firstName: z.string().min(1, 'First name is required'),
         lastName: z.string().min(1, 'Last name is required'),
-    })
-    .strict();
-
-const loginSchema = z
-    .object({
-        email: emailSchema,
-        password: z.string().min(1, 'Password is required'),
     })
     .strict();
 
@@ -66,21 +57,25 @@ const updateProfileSchema = z
         { message: 'Fields cannot be empty strings' }
     );
 
-const refreshTokenSchema = z
-    .object({
-        refresh_token: z.string().min(1, 'Refresh token is required'),
-    })
-    .strict();
-
 type RegisterDto = z.infer<typeof registerSchema>;
-type LoginDto = z.infer<typeof loginSchema>;
 type UpdateProfileDto = z.infer<typeof updateProfileSchema>;
-type RefreshTokenDto = z.infer<typeof refreshTokenSchema>;
 
+/**
+ * User Controller - User management endpoints
+ *
+ * Handles user registration and profile management.
+ * Authentication endpoints are in OAuthController (/oauth/token, etc.)
+ */
 @Controller('/users')
 export class UserController {
     constructor(@inject(TOKEN.UserService) private userService: UserService) {}
 
+    /**
+     * User Registration
+     *
+     * Creates a new user account with email/password.
+     * Only available for local authentication provider.
+     */
     @Post('/register')
     async register(
         @Body()
@@ -91,23 +86,25 @@ export class UserController {
         return new CreatedHttpResponse(user);
     }
 
-    @Post('/login')
-    @ApplyMiddleware(LoginRateLimitMiddleware)
-    async login(
-        @Body()
-        @ValidateStandardSchemaV1(loginSchema)
-        credentials: LoginDto
-    ) {
-        return this.userService.authenticate(credentials);
-    }
-
+    /**
+     * Get User Profile
+     *
+     * Returns the authenticated user's profile.
+     * For OIDC-style claims, use GET /oauth/userinfo instead.
+     */
     @Get('/profile')
     @UseGuard(AuthGuard)
     async getProfile(@Request() request: ExpressRequest) {
         const userId = getUser(request).id;
-        return this.userService.getProfile(userId);
+        const user = await this.userService.findById(userId);
+        return user;
     }
 
+    /**
+     * Update User Profile
+     *
+     * Updates the authenticated user's profile fields.
+     */
     @Put('/profile')
     @UseGuard(AuthGuard)
     async updateProfile(
@@ -118,35 +115,5 @@ export class UserController {
     ) {
         const userId = getUser(request).id;
         return this.userService.updateProfile(userId, data);
-    }
-
-    @Post('/refresh')
-    async refresh(
-        @Body()
-        @ValidateStandardSchemaV1(refreshTokenSchema)
-        data: RefreshTokenDto
-    ) {
-        return this.userService.refreshAccessToken(data.refresh_token);
-    }
-
-    @Post('/logout')
-    @UseGuard(AuthGuard)
-    async logout(
-        @Body()
-        @ValidateStandardSchemaV1(refreshTokenSchema)
-        data: RefreshTokenDto,
-        @Request() request: ExpressRequest
-    ) {
-        const userId = getUser(request).id;
-        await this.userService.logout(userId, data.refresh_token);
-        return { message: 'Successfully logged out' };
-    }
-
-    @Post('/logout-all')
-    @UseGuard(AuthGuard)
-    async logoutAll(@Request() request: ExpressRequest) {
-        const userId = getUser(request).id;
-        await this.userService.logoutAll(userId);
-        return { message: 'Successfully logged out from all devices' };
     }
 }

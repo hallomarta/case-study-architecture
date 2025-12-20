@@ -1,5 +1,5 @@
 import { ConsoleLogger, Logger, LogLevel } from '@inversifyjs/logger';
-import { getConfig } from './config';
+import { config } from './config';
 
 /**
  * Logger Module
@@ -58,7 +58,7 @@ function getLogLevels(minLevel: LogLevel): LogLevel[] {
  * logger.warn('Rate limit approaching', { userId: 'abc123', remaining: 5 });
  */
 export function createLogger(module: string): Logger {
-    const config = getConfig();
+    // Config is already loaded from module import
 
     // Suppress all logs during tests
     if (config.nodeEnv === 'test') {

@@ -9,6 +9,12 @@ export const TOKEN = {
     PasswordManagerService: Symbol.for('PasswordManagerService'),
     PasswordService: Symbol.for('PasswordService'),
     MailService: Symbol.for('MailService'),
+    TokenService: Symbol.for('TokenService'),
+    SessionService: Symbol.for('SessionService'),
+    OAuthService: Symbol.for('OAuthService'),
+
+    // Providers
+    IdentityProvider: Symbol.for('IdentityProvider'),
 
     // Repositories
     UserRepository: Symbol.for('UserRepository'),

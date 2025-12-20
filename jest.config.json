@@ -22,6 +22,11 @@
     "!src/**/*.d.ts",
     "!src/index.ts"
   ],
+  "coverageReporters": [
+    "text",
+    "text-summary",
+    "lcov"
+  ],
   "moduleFileExtensions": [
     "ts",
     "js",

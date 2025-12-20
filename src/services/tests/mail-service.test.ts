@@ -1,11 +1,22 @@
+import { TestBed, type Mocked } from '@suites/unit';
 import { ConsoleMailService } from '../mail-service';
+import type { Config } from '../../types/Config';
+import { TOKEN } from '../../lib/tokens';
 
 describe('ConsoleMailService', () => {
     let service: ConsoleMailService;
+    let mockConfig: Mocked<Config>;
     let consoleSpy: jest.SpyInstance;
 
-    beforeAll(() => {
-        service = new ConsoleMailService();
+    beforeAll(async () => {
+        const { unit, unitRef } =
+            await TestBed.solitary(ConsoleMailService).compile();
+
+        service = unit;
+        mockConfig = unitRef.get<Config>(TOKEN.Config);
+
+        // Set config to development to enable console logging
+        mockConfig.nodeEnv = 'development';
     });
 
     beforeEach(() => {

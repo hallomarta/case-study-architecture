@@ -190,32 +190,5 @@ export function createTestConfig(overrides?: Partial<Config>): Config {
     };
 }
 
-// Singleton config instance - loaded on first import
-let _config: Config | null = null;
-
-/**
- * Gets the singleton config instance, loading it on first access.
- */
-export function getConfig(): Config {
-    if (!_config) {
-        _config = loadConfig();
-    }
-    return _config;
-}
-
-/**
- * Resets the config singleton (useful for tests).
- */
-export function resetConfig(): void {
-    _config = null;
-}
-
-/**
- * Sets the config singleton directly (useful for tests).
- */
-export function setConfig(config: Config): void {
-    _config = config;
-}
-
-// Export singleton for direct import usage
-export const config = getConfig();
+// Export config - loaded once on first module import (module system provides singleton behavior)
+export const config = loadConfig();
