@@ -76,12 +76,12 @@ function getDefaultLogLevel(
     nodeEnv: string
 ): 'debug' | 'info' | 'warn' | 'error' {
     switch (nodeEnv) {
-        case 'production':
-            return 'info';
-        case 'test':
-            return 'error';
-        default:
-            return 'debug';
+    case 'production':
+        return 'info';
+    case 'test':
+        return 'error';
+    default:
+        return 'debug';
     }
 }
 

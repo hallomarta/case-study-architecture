@@ -8,57 +8,36 @@ import {
     UseGuard,
     CreatedHttpResponse,
     Request,
+    HttpStatusCode,
 } from '@inversifyjs/http-core';
+import {
+    OasServer,
+    OasSummary,
+    OasDescription,
+    OasOperationId,
+    OasTag,
+    OasRequestBody,
+    OasResponse,
+    OasSecurity,
+} from '@inversifyjs/http-open-api';
 import { ValidateStandardSchemaV1 } from '@inversifyjs/standard-schema-validation';
-import { z } from 'zod';
 import type { Request as ExpressRequest } from 'express';
 import { TOKEN } from '../lib/tokens';
 import { getUser } from '../lib/request-utils';
 import type { UserService } from '../services/user-service';
 import { AuthGuard } from '../guards/auth-guard';
-import { passwordSchema, emailSchema } from '../lib/validation-schemas';
-
-// Validation schemas
-const registerSchema = z
-    .object({
-        email: emailSchema,
-        password: passwordSchema,
-        firstName: z.string().min(1, 'First name is required'),
-        lastName: z.string().min(1, 'Last name is required'),
-    })
-    .strict();
-
-const updateProfileSchema = z
-    .object({
-        firstName: z
-            .string()
-            .min(1, 'First name cannot be empty')
-            .optional()
-            .or(z.literal(undefined)),
-        lastName: z
-            .string()
-            .min(1, 'Last name cannot be empty')
-            .optional()
-            .or(z.literal(undefined)),
-    })
-    .strict()
-    .refine(
-        data => {
-            // Reject if firstName is provided but empty
-            if ('firstName' in data && data.firstName === '') {
-                return false;
-            }
-            // Reject if lastName is provided but empty
-            if ('lastName' in data && data.lastName === '') {
-                return false;
-            }
-            return true;
-        },
-        { message: 'Fields cannot be empty strings' }
-    );
-
-type RegisterDto = z.infer<typeof registerSchema>;
-type UpdateProfileDto = z.infer<typeof updateProfileSchema>;
+import { zodToOpenApi } from '../lib/openapi';
+import {
+    registerSchema,
+    updateProfileSchema,
+    userSchema,
+    type RegisterDto,
+    type UpdateProfileDto,
+} from '../schemas/user-schemas';
+import {
+    errorResponseSchema,
+    validationErrorResponseSchema,
+} from '../schemas/generic-schemas';
 
 /**
  * User Controller - User management endpoints
@@ -66,6 +45,10 @@ type UpdateProfileDto = z.infer<typeof updateProfileSchema>;
  * Handles user registration and profile management.
  * Authentication endpoints are in OAuthController (/oauth/token, etc.)
  */
+@OasServer({
+    description: 'Development server',
+    url: 'http://localhost:3000',
+})
 @Controller('/users')
 export class UserController {
     constructor(@inject(TOKEN.UserService) private userService: UserService) {}
@@ -76,11 +59,51 @@ export class UserController {
      * Creates a new user account with email/password.
      * Only available for local authentication provider.
      */
+    @OasSummary('Register a new user')
+    @OasDescription(
+        'Creates a new user account with email/password authentication'
+    )
+    @OasOperationId('registerUser')
+    @OasTag('users')
+    @OasTag('authentication')
+    @OasRequestBody({
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(registerSchema),
+            },
+        },
+        description: 'User registration data',
+        required: true,
+    })
+    @OasResponse(HttpStatusCode.CREATED, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(userSchema),
+            },
+        },
+        description: 'User created successfully',
+    })
+    @OasResponse(HttpStatusCode.BAD_REQUEST, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(validationErrorResponseSchema),
+            },
+        },
+        description: 'Validation error',
+    })
+    @OasResponse(HttpStatusCode.CONFLICT, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'User already exists',
+    })
     @Post('/register')
     async register(
         @Body()
         @ValidateStandardSchemaV1(registerSchema)
-        userData: RegisterDto
+            userData: RegisterDto
     ): Promise<CreatedHttpResponse> {
         const user = await this.userService.register(userData);
         return new CreatedHttpResponse(user);
@@ -92,6 +115,29 @@ export class UserController {
      * Returns the authenticated user's profile.
      * For OIDC-style claims, use GET /oauth/userinfo instead.
      */
+    @OasSummary('Get user profile')
+    @OasDescription("Retrieves the authenticated user's profile")
+    @OasOperationId('getUserProfile')
+    @OasTag('users')
+    @OasSecurity({
+        bearerAuth: [],
+    })
+    @OasResponse(HttpStatusCode.OK, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(userSchema),
+            },
+        },
+        description: 'User profile',
+    })
+    @OasResponse(HttpStatusCode.UNAUTHORIZED, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'Not authenticated',
+    })
     @Get('/profile')
     @UseGuard(AuthGuard)
     async getProfile(@Request() request: ExpressRequest) {
@@ -105,12 +151,52 @@ export class UserController {
      *
      * Updates the authenticated user's profile fields.
      */
+    @OasSummary('Update user profile')
+    @OasDescription("Updates the authenticated user's profile fields")
+    @OasOperationId('updateUserProfile')
+    @OasTag('users')
+    @OasSecurity({
+        bearerAuth: [],
+    })
+    @OasRequestBody({
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(updateProfileSchema),
+            },
+        },
+        description: 'Profile fields to update',
+        required: true,
+    })
+    @OasResponse(HttpStatusCode.OK, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(userSchema),
+            },
+        },
+        description: 'Updated user profile',
+    })
+    @OasResponse(HttpStatusCode.BAD_REQUEST, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(validationErrorResponseSchema),
+            },
+        },
+        description: 'Validation error',
+    })
+    @OasResponse(HttpStatusCode.UNAUTHORIZED, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'Not authenticated',
+    })
     @Put('/profile')
     @UseGuard(AuthGuard)
     async updateProfile(
         @Body()
         @ValidateStandardSchemaV1(updateProfileSchema)
-        data: UpdateProfileDto,
+            data: UpdateProfileDto,
         @Request() request: ExpressRequest
     ) {
         const userId = getUser(request).id;

@@ -47,6 +47,7 @@
   "dependencies": {
     "@inversifyjs/http-core": "^4.8.1",
     "@inversifyjs/http-express": "^4.8.1",
+    "@inversifyjs/http-open-api": "^4.9.0",
     "@inversifyjs/http-validation": "^4.8.1",
     "@inversifyjs/logger": "^1.1.0",
     "@inversifyjs/standard-schema-validation": "^2.0.1",
@@ -67,7 +68,8 @@
     "reflect-metadata": "^0.2.2",
     "typescript": "^5.9.3",
     "winston": "^3.19.0",
-    "zod": "^4.2.1"
+    "zod": "^4.2.1",
+    "zod-openapi": "^5.4.5"
   },
   "lint-staged": {
     "src/**/*.ts": [

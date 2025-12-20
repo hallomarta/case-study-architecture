@@ -8,9 +8,19 @@ import {
     Request,
     ApplyMiddleware,
     BadRequestHttpResponse,
+    HttpStatusCode,
 } from '@inversifyjs/http-core';
+import {
+    OasServer,
+    OasSummary,
+    OasDescription,
+    OasOperationId,
+    OasTag,
+    OasRequestBody,
+    OasResponse,
+    OasSecurity,
+} from '@inversifyjs/http-open-api';
 import { ValidateStandardSchemaV1 } from '@inversifyjs/standard-schema-validation';
-import { z } from 'zod';
 import type { Request as ExpressRequest } from 'express';
 import { TOKEN } from '../lib/tokens';
 import { getUser } from '../lib/request-utils';
@@ -20,43 +30,20 @@ import type { TokenResponse } from '../services/token-service';
 import type { SessionService } from '../services/session-service';
 import type { UserService } from '../services/user-service';
 import type { OAuthService } from '../services/oauth-service';
-import { emailSchema } from '../lib/validation-schemas';
-
-// OAuth 2.0 token request schema
-const tokenRequestSchema = z
-    .object({
-        grant_type: z.enum(['password', 'refresh_token']),
-        // For password grant
-        username: emailSchema.optional(),
-        password: z.string().min(1).optional(),
-        // For refresh_token grant
-        refresh_token: z.string().min(1).optional(),
-    })
-    .strict()
-    .refine(
-        data => {
-            if (data.grant_type === 'password') {
-                return data.username && data.password;
-            }
-            if (data.grant_type === 'refresh_token') {
-                return data.refresh_token;
-            }
-            return false;
-        },
-        {
-            message:
-                'password grant requires username and password; refresh_token grant requires refresh_token',
-        }
-    );
-
-const revokeRequestSchema = z
-    .object({
-        refresh_token: z.string().min(1, 'Refresh token is required'),
-    })
-    .strict();
-
-type TokenRequestDto = z.infer<typeof tokenRequestSchema>;
-type RevokeRequestDto = z.infer<typeof revokeRequestSchema>;
+import { zodToOpenApi } from '../lib/openapi';
+import {
+    tokenRequestSchema,
+    revokeRequestSchema,
+    tokenResponseSchema,
+    userInfoSchema,
+    type TokenRequestDto,
+    type RevokeRequestDto,
+} from '../schemas/oauth-schemas';
+import {
+    successMessageSchema,
+    errorResponseSchema,
+    validationErrorResponseSchema,
+} from '../schemas/generic-schemas';
 
 /**
  * OAuth Controller - OIDC-style authentication endpoints
@@ -67,6 +54,10 @@ type RevokeRequestDto = z.infer<typeof revokeRequestSchema>;
  * - POST /oauth/revoke-all - Revoke all sessions (custom extension)
  * - GET /oauth/userinfo - Get authenticated user claims
  */
+@OasServer({
+    description: 'Development server',
+    url: 'http://localhost:3000',
+})
 @Controller('/oauth')
 export class OAuthController {
     constructor(
@@ -84,12 +75,61 @@ export class OAuthController {
      *
      * Returns OIDC-style token response with access_token, refresh_token, id_token
      */
+    @OasSummary('OAuth 2.0 token endpoint')
+    @OasDescription(
+        'Authenticate with password grant or refresh access token with refresh_token grant'
+    )
+    @OasOperationId('getToken')
+    @OasTag('oauth')
+    @OasTag('authentication')
+    @OasRequestBody({
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(tokenRequestSchema),
+            },
+        },
+        description:
+            'OAuth 2.0 token request (password or refresh_token grant)',
+        required: true,
+    })
+    @OasResponse(HttpStatusCode.OK, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(tokenResponseSchema),
+            },
+        },
+        description: 'Token issued successfully',
+    })
+    @OasResponse(HttpStatusCode.BAD_REQUEST, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(validationErrorResponseSchema),
+            },
+        },
+        description: 'Validation error or unsupported grant type',
+    })
+    @OasResponse(HttpStatusCode.UNAUTHORIZED, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'Invalid credentials or refresh token',
+    })
+    @OasResponse(HttpStatusCode.TOO_MANY_REQUESTS, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'Rate limit exceeded',
+    })
     @Post('/token')
     @ApplyMiddleware(LoginRateLimitMiddleware)
     async token(
         @Body()
         @ValidateStandardSchemaV1(tokenRequestSchema)
-        data: TokenRequestDto
+            data: TokenRequestDto
     ): Promise<TokenResponse> {
         if (data.grant_type === 'password') {
             return this.oauthService.handlePasswordGrant(
@@ -115,12 +155,46 @@ export class OAuthController {
      *
      * Revokes the specified refresh token (logout current session)
      */
+    @OasSummary('Logout: Revoke refresh token')
+    @OasDescription(
+        'Revokes the specified refresh token (logout current session)'
+    )
+    @OasOperationId('revokeToken')
+    @OasTag('oauth')
+    @OasSecurity({
+        bearerAuth: [],
+    })
+    @OasRequestBody({
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(revokeRequestSchema),
+            },
+        },
+        description: 'Token to revoke',
+        required: true,
+    })
+    @OasResponse(HttpStatusCode.OK, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(successMessageSchema),
+            },
+        },
+        description: 'Token revoked successfully',
+    })
+    @OasResponse(HttpStatusCode.UNAUTHORIZED, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'Not authenticated',
+    })
     @Post('/revoke')
     @UseGuard(AuthGuard)
     async revoke(
         @Body()
         @ValidateStandardSchemaV1(revokeRequestSchema)
-        data: RevokeRequestDto,
+            data: RevokeRequestDto,
         @Request() request: ExpressRequest
     ) {
         const userId = getUser(request).id;
@@ -133,6 +207,31 @@ export class OAuthController {
      *
      * Revokes all refresh tokens for the authenticated user (logout all devices)
      */
+    @OasSummary('Logout from all devices: Revoke all sessions')
+    @OasDescription(
+        'Revokes all refresh tokens for the authenticated user (logout all devices)'
+    )
+    @OasOperationId('revokeAllSessions')
+    @OasTag('oauth')
+    @OasSecurity({
+        bearerAuth: [],
+    })
+    @OasResponse(HttpStatusCode.OK, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(successMessageSchema),
+            },
+        },
+        description: 'All sessions revoked successfully',
+    })
+    @OasResponse(HttpStatusCode.UNAUTHORIZED, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'Not authenticated',
+    })
     @Post('/revoke-all')
     @UseGuard(AuthGuard)
     async revokeAll(@Request() request: ExpressRequest) {
@@ -147,6 +246,29 @@ export class OAuthController {
      * Returns claims about the authenticated user.
      * Uses OIDC standard claim names: sub, email, given_name, family_name
      */
+    @OasSummary('Get user info')
+    @OasDescription('Returns OIDC standard claims about the authenticated user')
+    @OasOperationId('getUserInfo')
+    @OasTag('oidc')
+    @OasSecurity({
+        bearerAuth: [],
+    })
+    @OasResponse(HttpStatusCode.OK, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(userInfoSchema),
+            },
+        },
+        description: 'User info claims',
+    })
+    @OasResponse(HttpStatusCode.UNAUTHORIZED, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'Not authenticated',
+    })
     @Get('/userinfo')
     @UseGuard(AuthGuard)
     async userinfo(@Request() request: ExpressRequest) {

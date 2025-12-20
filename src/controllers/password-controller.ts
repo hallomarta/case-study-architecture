@@ -1,28 +1,34 @@
 import { inject } from 'inversify';
-import { Controller, Post, Body } from '@inversifyjs/http-core';
+import { Controller, Post, Body, HttpStatusCode } from '@inversifyjs/http-core';
+import {
+    OasServer,
+    OasSummary,
+    OasDescription,
+    OasOperationId,
+    OasTag,
+    OasRequestBody,
+    OasResponse,
+} from '@inversifyjs/http-open-api';
 import { ValidateStandardSchemaV1 } from '@inversifyjs/standard-schema-validation';
-import { z } from 'zod';
 import { TOKEN } from '../lib/tokens';
 import type { PasswordService } from '../services/password-service';
-import { passwordSchema, emailSchema } from '../lib/validation-schemas';
+import { zodToOpenApi } from '../lib/openapi';
+import {
+    forgotPasswordSchema,
+    resetPasswordSchema,
+    type ForgotPasswordDto,
+    type ResetPasswordDto,
+} from '../schemas/password-schemas';
+import {
+    successMessageSchema,
+    errorResponseSchema,
+    validationErrorResponseSchema,
+} from '../schemas/generic-schemas';
 
-// Validation schemas
-const forgotPasswordSchema = z
-    .object({
-        email: emailSchema,
-    })
-    .strict();
-
-const resetPasswordSchema = z
-    .object({
-        token: z.string().min(1, 'Token is required'),
-        newPassword: passwordSchema,
-    })
-    .strict();
-
-type ForgotPasswordDto = z.infer<typeof forgotPasswordSchema>;
-type ResetPasswordDto = z.infer<typeof resetPasswordSchema>;
-
+@OasServer({
+    description: 'Development server',
+    url: 'http://localhost:3000',
+})
 @Controller('/password')
 export class PasswordController {
     constructor(
@@ -35,11 +41,43 @@ export class PasswordController {
      * SECURITY: Always returns 200 with the same message regardless of whether
      * the email exists in the system. This prevents user enumeration attacks.
      */
+    @OasSummary('Request password reset')
+    @OasDescription(
+        'Sends a password reset email if the account exists (always returns success for security)'
+    )
+    @OasOperationId('forgotPassword')
+    @OasTag('password')
+    @OasRequestBody({
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(forgotPasswordSchema),
+            },
+        },
+        description: 'Email address',
+        required: true,
+    })
+    @OasResponse(HttpStatusCode.OK, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(successMessageSchema),
+            },
+        },
+        description:
+            'Success message (always returned regardless of whether email exists)',
+    })
+    @OasResponse(HttpStatusCode.BAD_REQUEST, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(validationErrorResponseSchema),
+            },
+        },
+        description: 'Validation error',
+    })
     @Post('/forgot')
     async forgotPassword(
         @Body()
         @ValidateStandardSchemaV1(forgotPasswordSchema)
-        data: ForgotPasswordDto
+            data: ForgotPasswordDto
     ) {
         return this.passwordService.requestPasswordReset(data.email);
     }
@@ -49,11 +87,48 @@ export class PasswordController {
      *
      * Returns 200 on success, or appropriate error status on failure.
      */
+    @OasSummary('Reset password')
+    @OasDescription('Resets password using a valid reset token from email')
+    @OasOperationId('resetPassword')
+    @OasTag('password')
+    @OasRequestBody({
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(resetPasswordSchema),
+            },
+        },
+        description: 'Reset token and new password',
+        required: true,
+    })
+    @OasResponse(HttpStatusCode.OK, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(successMessageSchema),
+            },
+        },
+        description: 'Password reset successfully',
+    })
+    @OasResponse(HttpStatusCode.BAD_REQUEST, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(validationErrorResponseSchema),
+            },
+        },
+        description: 'Validation error',
+    })
+    @OasResponse(HttpStatusCode.UNAUTHORIZED, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'Invalid or expired reset token',
+    })
     @Post('/reset')
     async resetPassword(
         @Body()
         @ValidateStandardSchemaV1(resetPasswordSchema)
-        data: ResetPasswordDto
+            data: ResetPasswordDto
     ) {
         return this.passwordService.resetPassword(data.token, data.newPassword);
     }
