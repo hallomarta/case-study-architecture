@@ -2,6 +2,7 @@ import { defineConfig } from 'eslint/config';
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import jest from 'eslint-plugin-jest';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
 
 export default defineConfig(
     {
@@ -9,6 +10,7 @@ export default defineConfig(
     },
     eslint.configs.recommended,
     tseslint.configs.recommended,
+    eslintConfigPrettier,
     {
         files: ['**/*.ts', '**/*.tsx'],
         languageOptions: {
@@ -23,7 +25,6 @@ export default defineConfig(
             'space-before-function-paren': 0,
             'semi': 0,
             'padded-blocks': 0,
-            'indent': ['error', 4],
             '@typescript-eslint/ban-types': 0,
             '@typescript-eslint/no-inferrable-types': 0,
             '@typescript-eslint/no-explicit-any': 0,

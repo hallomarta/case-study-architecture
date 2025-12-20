@@ -129,7 +129,7 @@ export class OAuthController {
     async token(
         @Body()
         @ValidateStandardSchemaV1(tokenRequestSchema)
-            data: TokenRequestDto
+        data: TokenRequestDto
     ): Promise<TokenResponse> {
         if (data.grant_type === 'password') {
             return this.oauthService.handlePasswordGrant(
@@ -194,7 +194,7 @@ export class OAuthController {
     async revoke(
         @Body()
         @ValidateStandardSchemaV1(revokeRequestSchema)
-            data: RevokeRequestDto,
+        data: RevokeRequestDto,
         @Request() request: ExpressRequest
     ) {
         const userId = getUser(request).id;

@@ -103,7 +103,7 @@ export class UserController {
     async register(
         @Body()
         @ValidateStandardSchemaV1(registerSchema)
-            userData: RegisterDto
+        userData: RegisterDto
     ): Promise<CreatedHttpResponse> {
         const user = await this.userService.register(userData);
         return new CreatedHttpResponse(user);
@@ -196,7 +196,7 @@ export class UserController {
     async updateProfile(
         @Body()
         @ValidateStandardSchemaV1(updateProfileSchema)
-            data: UpdateProfileDto,
+        data: UpdateProfileDto,
         @Request() request: ExpressRequest
     ) {
         const userId = getUser(request).id;

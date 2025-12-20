@@ -1,5 +1,11 @@
 import { inject } from 'inversify';
-import { Controller, Post, Body, HttpStatusCode, ApplyMiddleware } from '@inversifyjs/http-core';
+import {
+    Controller,
+    Post,
+    Body,
+    HttpStatusCode,
+    ApplyMiddleware,
+} from '@inversifyjs/http-core';
 import { PasswordResetRateLimitMiddleware } from '../middleware/rate-limit-middleware';
 import {
     OasServer,
@@ -34,7 +40,7 @@ import {
 export class PasswordController {
     constructor(
         @inject(TOKEN.PasswordService) private passwordService: PasswordService
-    ) { }
+    ) {}
 
     /**
      * Request a password reset email.

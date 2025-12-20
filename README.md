@@ -13,6 +13,7 @@ This document outlines key architectural and security decisions made in this cas
 7. [Input Validation](#input-validation)
 8. [Configuration Management](#configuration-management)
 9. [Logger Architecture](#logger-architecture)
+10. [Code Quality](#code-quality)
 
 ---
 
@@ -553,7 +554,7 @@ Runtime validation in production can cause downtime if configuration is missing 
 import { z } from 'zod';
 
 const envSchema = z.object({
-    PORT: z.string().default('9000').transform(Number),
+    PORT: z.string().default('9000'),
     DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
     JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
     // ... other fields
@@ -566,7 +567,6 @@ const envSchema = z.object({
 | Type safety          | Config object is fully typed                        |
 | Default values       | Centralized, documented defaults                    |
 | Duration parsing     | Uses `ms` library to convert `'15m'` → milliseconds |
-| Sensitive masking    | Secrets are masked in error output                  |
 
 ### Injectable Config via DI
 
@@ -623,3 +623,26 @@ Log levels default based on `NODE_ENV`: production → INFO, development → DEB
 | `LOGIN`                | info  | `userId`, `familyId`                 |
 | `TOKEN_ROTATED`        | debug | `userId`, `familyId`                 |
 | `TOKEN_REUSE_DETECTED` | error | `userId`, `familyId`, `revokedCount` |
+
+---
+
+## Code Quality
+
+The project uses **ESLint**, **Prettier**, and **TypeScript** for consistent code quality:
+
+| Tool                     | Purpose                                           |
+| ------------------------ | ------------------------------------------------- |
+| ESLint                   | Linting with `typescript-eslint` for TS rules     |
+| Prettier                 | Code formatting (4-space indent, single quotes)   |
+| `eslint-config-prettier` | Disables ESLint rules that conflict with Prettier |
+
+### Scripts
+
+```bash
+yarn lint        # Run ESLint
+yarn lint --fix  # Auto-fix ESLint issues
+yarn format      # Format with Prettier
+yarn format:check # Check formatting without changes
+```
+
+Pre-commit hooks via `husky` and `lint-staged` run ESLint and Prettier on staged `.ts` files.
