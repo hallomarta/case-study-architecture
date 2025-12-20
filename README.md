@@ -464,6 +464,8 @@ export interface MailService {
 
 ## Rate Limiting
 
+### Login Attempts
+
 Login attempts are rate-limited to prevent brute-force attacks:
 
 | Setting      | Value        |
@@ -472,9 +474,23 @@ Login attempts are rate-limited to prevent brute-force attacks:
 | Max attempts | 5 per window |
 | Scope        | Per IP       |
 
-Implemented via `express-rate-limit` middleware applied only to `/oauth/token`. Other endpoints are not rate-limited in this implementation but could be added similarly.
+Implemented via `express-rate-limit` middleware on `/oauth/token`.
 
-**Testing consideration**: The rate limit store is exported and reset between tests to ensure test isolation.
+### Password Reset Requests
+
+Password reset is rate-limited **by email address** to prevent:
+- Flooding a user's inbox with reset emails
+- Denial of service via excessive token generation
+
+| Setting      | Value        |
+| ------------ | ------------ |
+| Window       | 15 minutes   |
+| Max attempts | 3 per window |
+| Scope        | Per email    |
+
+The `keyGenerator` uses the email from the request body as the rate limit key, ensuring attackers can't flood a specific user's inbox even from distributed IPs.
+
+**Testing consideration**: Rate limit stores are exported and reset between tests to ensure test isolation.
 
 ---
 

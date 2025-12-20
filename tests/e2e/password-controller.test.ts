@@ -4,6 +4,7 @@ import { Application } from 'express';
 import { getApp } from '../../src/lib/app';
 import { cleanDatabase, disconnectDatabase } from '../helpers/database';
 import prisma from '../../src/lib/prisma';
+import { passwordResetRateLimitStore, rateLimitStore } from '../../src/middleware/rate-limit-middleware';
 
 /**
  * Helper to login via OAuth token endpoint
@@ -42,6 +43,8 @@ describe('Password Reset E2E Tests', () => {
 
     beforeEach(async () => {
         await cleanDatabase();
+        passwordResetRateLimitStore.resetAll();
+        rateLimitStore.resetAll();
     });
 
     afterAll(async () => {

@@ -8,7 +8,7 @@ import { PasswordController } from './src/controllers/password-controller';
 import { OAuthController } from './src/controllers/oauth-controller';
 import { SocialAuthController } from './src/controllers/social-auth-controller';
 
-import { LoginRateLimitMiddleware } from './src/middleware/rate-limit-middleware';
+import { LoginRateLimitMiddleware, PasswordResetRateLimitMiddleware } from './src/middleware/rate-limit-middleware';
 
 import { UserRepository, UserRepositoryImpl } from './src/repositories/user-repository';
 import { RefreshTokenRepository, RefreshTokenRepositoryImpl } from './src/repositories/refresh-token-repository';
@@ -46,6 +46,7 @@ diContainer.bind(AuthGuard).toSelf().inSingletonScope();
 // Register middleware
 // Use transient scope so each request gets fresh middleware (important for rate limiting in tests)
 diContainer.bind(LoginRateLimitMiddleware).toSelf().inTransientScope();
+diContainer.bind(PasswordResetRateLimitMiddleware).toSelf().inTransientScope();
 
 // Register controllers
 diContainer.bind(BaseController).toSelf().inSingletonScope();

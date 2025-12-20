@@ -1,5 +1,6 @@
 import { inject } from 'inversify';
-import { Controller, Post, Body, HttpStatusCode } from '@inversifyjs/http-core';
+import { Controller, Post, Body, HttpStatusCode, ApplyMiddleware } from '@inversifyjs/http-core';
+import { PasswordResetRateLimitMiddleware } from '../middleware/rate-limit-middleware';
 import {
     OasServer,
     OasSummary,
@@ -33,7 +34,7 @@ import {
 export class PasswordController {
     constructor(
         @inject(TOKEN.PasswordService) private passwordService: PasswordService
-    ) {}
+    ) { }
 
     /**
      * Request a password reset email.
@@ -73,11 +74,20 @@ export class PasswordController {
         },
         description: 'Validation error',
     })
+    @OasResponse(HttpStatusCode.TOO_MANY_REQUESTS, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'Rate limit exceeded',
+    })
     @Post('/forgot')
+    @ApplyMiddleware(PasswordResetRateLimitMiddleware)
     async forgotPassword(
         @Body()
         @ValidateStandardSchemaV1(forgotPasswordSchema)
-            data: ForgotPasswordDto
+        data: ForgotPasswordDto
     ) {
         return this.passwordService.requestPasswordReset(data.email);
     }
@@ -128,7 +138,7 @@ export class PasswordController {
     async resetPassword(
         @Body()
         @ValidateStandardSchemaV1(resetPasswordSchema)
-            data: ResetPasswordDto
+        data: ResetPasswordDto
     ) {
         return this.passwordService.resetPassword(data.token, data.newPassword);
     }
