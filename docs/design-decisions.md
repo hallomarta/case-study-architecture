@@ -6,7 +6,8 @@ This document outlines key architectural and security decisions made in this cas
 
 1. [Configuration Management](#configuration-management)
 2. [Refresh Token Rotation](#refresh-token-rotation)
-3. [Logger Architecture](#logger-architecture)
+3. [Password Reset Flow](#password-reset-flow)
+4. [Logger Architecture](#logger-architecture)
 
 ---
 
@@ -168,6 +169,202 @@ model RefreshToken {
 - **Forced re-authentication**: When reuse is detected, legitimate users must log in again
 - **Storage overhead**: Each refresh creates a new token record (mitigated by cleanup job)
 - **Complexity**: More complex than simple token validation
+
+---
+
+## Password Reset Flow
+
+### Overview
+
+This implementation follows the [OWASP Forgot Password Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html) and [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) for secure password reset functionality.
+
+### Token Generation
+
+We use **cryptographically secure random tokens** rather than JWTs for password reset:
+
+```typescript
+import crypto from 'crypto';
+const token = crypto.randomBytes(32).toString('hex'); // 256 bits = 64 hex chars
+```
+
+| Approach   | Decision   | Rationale                                                                     |
+| ---------- | ---------- | ----------------------------------------------------------------------------- |
+| **CSPRNG** | ✅ Chosen   | Unpredictable, no payload to decode, simpler security model                   |
+| **JWT**    | ❌ Not used | Additional attack surface (algorithm confusion, etc.), unnecessary complexity |
+
+**Token specifications:**
+- **Length**: 32 bytes (256 bits of entropy)
+- **Format**: Hex-encoded (64 characters)
+- **Entropy**: Far exceeds OWASP's 64-bit minimum recommendation
+
+### Token Storage
+
+Tokens are **hashed before storage** using SHA-256:
+
+```typescript
+const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+```
+
+| Storage Approach  | Decision   | Rationale                                                                              |
+| ----------------- | ---------- | -------------------------------------------------------------------------------------- |
+| **SHA-256 hash**  | ✅ Chosen   | Fast hashing suitable for single-use tokens, prevents token theft if DB is compromised |
+| **Plaintext**     | ❌ Not used | Token theft from DB compromise would allow password resets                             |
+| **bcrypt/Argon2** | ❌ Not used | Unnecessary for single-use tokens (not passwords)                                      |
+
+### Token Expiration
+
+Password reset tokens expire after **15 minutes**:
+
+| Application Type | OWASP Recommendation | Our Choice     |
+| ---------------- | -------------------- | -------------- |
+| High-security    | 15-30 minutes        | **15 minutes** |
+| Standard         | Up to 1 hour         | —              |
+
+**Rationale**: Short expiration limits the attack window if a token is intercepted in transit (email compromise, etc.).
+
+### Single-Use Enforcement
+
+Tokens are marked as used immediately after successful password reset:
+
+```prisma
+model PasswordResetToken {
+    id        String    @id @default(uuid())
+    tokenHash String    @unique
+    userId    String
+    expiresAt DateTime
+    usedAt    DateTime? // Set when token is consumed
+}
+```
+
+Additionally, when a new reset is requested, **all existing valid tokens for that user are invalidated**. This ensures only the most recent token works.
+
+### User Enumeration Prevention
+
+**Critical security measure**: The password reset endpoint returns the **same response regardless of whether the email exists**.
+
+```typescript
+// Always returns this message, whether email exists or not
+return { 
+    message: "If that email address is in our database, we will send you an email to reset your password." 
+};
+```
+
+#### Timing Attack Prevention
+
+To prevent attackers from detecting email existence via response timing differences:
+
+```typescript
+async requestPasswordReset(email: string) {
+    const startTime = Date.now();
+    
+    // Process request (time varies based on whether user exists)
+    await this.processRequest(email);
+    
+    // Normalize response time to minimum 500ms
+    const elapsed = Date.now() - startTime;
+    if (elapsed < 500) {
+        await sleep(500 - elapsed);
+    }
+    
+    return { message: "If that email address..." };
+}
+```
+
+### Email Security
+
+#### Reset Link Format
+
+```
+https://example.com/reset-password?token=abc123...
+```
+
+| Requirement              | Implementation                                              |
+| ------------------------ | ----------------------------------------------------------- |
+| **HTTPS only**           | ✅ Links use HTTPS                                           |
+| **Hard-coded domain**    | ✅ Never uses `Host` header (prevents Host Header Injection) |
+| **Token in query param** | ✅ Not in URL path (can leak in server logs)                 |
+
+#### Email Content Security
+
+| Include                                | Don't Include                  |
+| -------------------------------------- | ------------------------------ |
+| ✅ Reset link with token                | ❌ Username or password         |
+| ✅ Expiration timeframe (15 min)        | ❌ Security questions           |
+| ✅ "If you didn't request this" warning | ❌ Detailed account information |
+| ✅ Support contact info                 | ❌ The token in plain text body |
+
+### Post-Reset Security
+
+When a password is successfully reset:
+
+1. **Token is marked as used** — Single-use enforcement
+2. **All refresh tokens are revoked** — Forces re-authentication on all devices
+3. **Confirmation email is sent** — Alerts user to the change
+
+```typescript
+// Revoke all sessions after password reset
+await this.refreshTokenRepository.revokeAllForUser(user.id);
+```
+
+This ensures that if an attacker reset the password, the legitimate user:
+- Gets notified via confirmation email
+- Is logged out of all sessions
+- Must re-authenticate (and likely recover their account)
+
+### Mail Service Architecture
+
+The `MailService` interface allows swapping implementations via DI:
+
+```typescript
+export interface MailService {
+    sendPasswordResetEmail(to: string, resetUrl: string): Promise<void>;
+    sendPasswordResetConfirmation(to: string): Promise<void>;
+}
+```
+
+| Environment | Implementation                 | Purpose                       |
+| ----------- | ------------------------------ | ----------------------------- |
+| Development | `ConsoleMailService`           | Logs email content to console |
+| Production  | `SendGridMailService` (future) | Sends actual emails           |
+| Testing     | Mock implementation            | Unit test isolation           |
+
+### Security Events
+
+| Event                                    | Level | Logged Metadata                  |
+| ---------------------------------------- | ----- | -------------------------------- |
+| `PASSWORD_RESET_REQUESTED`               | info  | `userId` (masked email in debug) |
+| `PASSWORD_RESET_REQUESTED_UNKNOWN_EMAIL` | debug | (no PII)                         |
+| `PASSWORD_RESET_INVALID_TOKEN`           | warn  | (no PII)                         |
+| `PASSWORD_RESET_SUCCESS`                 | info  | `userId`                         |
+
+### Database Schema
+
+```prisma
+model PasswordResetToken {
+    id        String    @id @default(uuid())
+    tokenHash String    @unique
+    userId    String
+    expiresAt DateTime
+    createdAt DateTime  @default(now())
+    usedAt    DateTime?
+    user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
+    @@index([expiresAt])
+}
+```
+
+### Security Summary
+
+| Aspect                 | Implementation                               |
+| ---------------------- | -------------------------------------------- |
+| Token generation       | 32 bytes CSPRNG, hex-encoded                 |
+| Token storage          | SHA-256 hash                                 |
+| Token expiry           | 15 minutes                                   |
+| Single-use             | `usedAt` timestamp                           |
+| Enumeration prevention | Identical responses + timing normalization   |
+| Post-reset             | Revoke all refresh tokens, send confirmation |
+| Email links            | HTTPS, hard-coded domain, Referrer-Policy    |
 
 ---
 

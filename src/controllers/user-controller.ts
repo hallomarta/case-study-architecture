@@ -18,24 +18,13 @@ import { TOKEN } from '../lib/tokens';
 import { getUser } from '../lib/request-utils';
 import type { UserService } from '../services/user-service';
 import { AuthGuard } from '../guards/auth-guard';
+import { passwordSchema, emailSchema } from '../lib/validation-schemas';
 
 // Validation schemas
 const registerSchema = z
     .object({
-        email: z.string().email('Invalid email format'),
-        password: z
-            .string()
-            .min(8, 'Password must be at least 8 characters')
-            .max(128, 'Password must not exceed 128 characters')
-            .refine(val => /[a-z]/.test(val), {
-                message: 'Password must contain at least one lowercase letter',
-            })
-            .refine(val => /[A-Z]/.test(val), {
-                message: 'Password must contain at least one uppercase letter',
-            })
-            .refine(val => /\d/.test(val), {
-                message: 'Password must contain at least one number',
-            }),
+        email: emailSchema,
+        password: passwordSchema,
         firstName: z.string().min(1, 'First name is required'),
         lastName: z.string().min(1, 'Last name is required'),
     })
@@ -43,7 +32,7 @@ const registerSchema = z
 
 const loginSchema = z
     .object({
-        email: z.string().email('Invalid email format'),
+        email: emailSchema,
         password: z.string().min(1, 'Password is required'),
     })
     .strict();
@@ -96,7 +85,7 @@ export class UserController {
     async register(
         @Body()
         @ValidateStandardSchemaV1(registerSchema)
-            userData: RegisterDto
+        userData: RegisterDto
     ): Promise<CreatedHttpResponse> {
         const user = await this.userService.register(userData);
         return new CreatedHttpResponse(user);
@@ -107,7 +96,7 @@ export class UserController {
     async login(
         @Body()
         @ValidateStandardSchemaV1(loginSchema)
-            credentials: LoginDto
+        credentials: LoginDto
     ) {
         return this.userService.authenticate(credentials);
     }
@@ -124,7 +113,7 @@ export class UserController {
     async updateProfile(
         @Body()
         @ValidateStandardSchemaV1(updateProfileSchema)
-            data: UpdateProfileDto,
+        data: UpdateProfileDto,
         @Request() request: ExpressRequest
     ) {
         const userId = getUser(request).id;
@@ -135,7 +124,7 @@ export class UserController {
     async refresh(
         @Body()
         @ValidateStandardSchemaV1(refreshTokenSchema)
-            data: RefreshTokenDto
+        data: RefreshTokenDto
     ) {
         return this.userService.refreshAccessToken(data.refresh_token);
     }
@@ -145,7 +134,7 @@ export class UserController {
     async logout(
         @Body()
         @ValidateStandardSchemaV1(refreshTokenSchema)
-            data: RefreshTokenDto,
+        data: RefreshTokenDto,
         @Request() request: ExpressRequest
     ) {
         const userId = getUser(request).id;

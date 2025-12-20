@@ -59,6 +59,14 @@ export interface UserRepository {
      * Check if a user exists by email (efficient for existence checks)
      */
     exists(email: string): Promise<boolean>;
+
+    /**
+     * Update the password hash for a user's identity.
+     * Used for password reset flow.
+     * @param userId - User ID
+     * @param passwordHash - New hashed password
+     */
+    updatePasswordHash(userId: string, passwordHash: string): Promise<void>;
 }
 
 @injectable()
@@ -139,5 +147,18 @@ export class UserRepositoryImpl implements UserRepository {
             where: { email },
         });
         return count > 0;
+    }
+
+    async updatePasswordHash(
+        userId: string,
+        passwordHash: string
+    ): Promise<void> {
+        await this.prisma.userIdentity.updateMany({
+            where: {
+                userId,
+                provider: 'username-password',
+            },
+            data: { passwordHash },
+        });
     }
 }

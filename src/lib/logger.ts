@@ -59,6 +59,14 @@ function getLogLevels(minLevel: LogLevel): LogLevel[] {
  */
 export function createLogger(module: string): Logger {
     const config = getConfig();
+
+    // Suppress all logs during tests
+    if (config.nodeEnv === 'test') {
+        return new ConsoleLogger(module, {
+            logTypes: [], // No log types = no output
+        });
+    }
+
     const logLevel = LOG_LEVEL_MAP[config.logLevel] ?? LogLevel.INFO;
 
     const logger: Logger = new ConsoleLogger(module, {

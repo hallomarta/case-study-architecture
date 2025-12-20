@@ -16,13 +16,13 @@ export interface Config {
 
     /** Log level override (default based on nodeEnv) */
     logLevel:
-    | 'debug'
-    | 'info'
-    | 'warn'
-    | 'error'
-    | 'verbose'
-    | 'http'
-    | 'silly';
+        | 'debug'
+        | 'info'
+        | 'warn'
+        | 'error'
+        | 'verbose'
+        | 'http'
+        | 'silly';
 
     /** Secret key for signing access tokens */
     accessTokenSecret: string;

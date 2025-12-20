@@ -57,7 +57,7 @@ export class UserServiceImpl implements UserService {
         @inject(TOKEN.UserRepository) private userRepository: UserRepository,
         @inject(TOKEN.RefreshTokenRepository)
         private refreshTokenRepository: RefreshTokenRepository
-    ) { }
+    ) {}
 
     // Helper: Hash refresh token for storage
     private hashToken(token: string): string {
@@ -76,10 +76,14 @@ export class UserServiceImpl implements UserService {
             jti: randomUUID(), // Unique token ID for each refresh token
         };
 
-        const accessToken = jwt.sign(accessPayload, this.config.accessTokenSecret, {
-            expiresIn: Math.floor(this.config.accessTokenExpiresIn / 1000), // Convert ms to seconds
-            algorithm: 'HS256',
-        } as jwt.SignOptions);
+        const accessToken = jwt.sign(
+            accessPayload,
+            this.config.accessTokenSecret,
+            {
+                expiresIn: Math.floor(this.config.accessTokenExpiresIn / 1000), // Convert ms to seconds
+                algorithm: 'HS256',
+            } as jwt.SignOptions
+        );
 
         const refreshToken = jwt.sign(
             refreshPayload,

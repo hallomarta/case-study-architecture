@@ -4,16 +4,20 @@ import { PrismaClient } from '@prisma/client';
 
 import { BaseController } from './src/controllers/base-controller';
 import { UserController } from './src/controllers/user-controller';
+import { PasswordController } from './src/controllers/password-controller';
 
 import { LoginRateLimitMiddleware } from './src/middleware/rate-limit-middleware';
 
 import { UserRepository, UserRepositoryImpl } from './src/repositories/user-repository';
 import { RefreshTokenRepository, RefreshTokenRepositoryImpl } from './src/repositories/refresh-token-repository';
+import { PasswordResetTokenRepository, PasswordResetTokenRepositoryImpl } from './src/repositories/password-reset-token-repository';
 import { AuthGuard } from './src/guards/auth-guard';
 
 import { TOKEN } from './src/lib/tokens';
 import { PasswordManagerService, PasswordManagerServiceImpl } from './src/services/password-manager-service';
 import { UserService, UserServiceImpl } from './src/services/user-service';
+import { PasswordService, PasswordServiceImpl } from './src/services/password-service';
+import { MailService, ConsoleMailService } from './src/services/mail-service';
 import prisma from './src/lib/prisma';
 import { config } from './src/lib/config';
 import type { Config } from './src/types/Config';
@@ -39,15 +43,25 @@ diContainer.bind(LoginRateLimitMiddleware).toSelf().inTransientScope();
 // Register controllers
 diContainer.bind(BaseController).toSelf().inSingletonScope();
 diContainer.bind(UserController).toSelf().inSingletonScope();
+diContainer.bind(PasswordController).toSelf().inSingletonScope();
 
 // bind services
 diContainer.bind<UserService>(TOKEN.UserService).to(UserServiceImpl);
 diContainer
     .bind<PasswordManagerService>(TOKEN.PasswordManagerService)
     .to(PasswordManagerServiceImpl);
+diContainer
+    .bind<PasswordService>(TOKEN.PasswordService)
+    .to(PasswordServiceImpl);
+diContainer
+    .bind<MailService>(TOKEN.MailService)
+    .to(ConsoleMailService);
 
 // bind repositories
 diContainer.bind<UserRepository>(TOKEN.UserRepository).to(UserRepositoryImpl);
 diContainer
     .bind<RefreshTokenRepository>(TOKEN.RefreshTokenRepository)
     .to(RefreshTokenRepositoryImpl);
+diContainer
+    .bind<PasswordResetTokenRepository>(TOKEN.PasswordResetTokenRepository)
+    .to(PasswordResetTokenRepositoryImpl);

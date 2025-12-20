@@ -10,14 +10,15 @@ datasource db {
 }
 
 model User {
-    id            String         @id @default(uuid())
-    email         String         @unique
-    firstName     String
-    lastName      String
-    createdAt     DateTime       @default(now())
-    updatedAt     DateTime       @updatedAt
-    identities    UserIdentity[]
-    refreshTokens RefreshToken[]
+    id                  String               @id @default(uuid())
+    email               String               @unique
+    firstName           String
+    lastName            String
+    createdAt           DateTime             @default(now())
+    updatedAt           DateTime             @updatedAt
+    identities          UserIdentity[]
+    refreshTokens       RefreshToken[]
+    passwordResetTokens PasswordResetToken[]
 }
 
 model UserIdentity {
@@ -43,5 +44,18 @@ model RefreshToken {
 
     @@index([userId])
     @@index([familyId])
+    @@index([expiresAt])
+}
+
+model PasswordResetToken {
+    id        String    @id @default(uuid())
+    tokenHash String    @unique
+    userId    String
+    expiresAt DateTime
+    createdAt DateTime  @default(now())
+    usedAt    DateTime?
+    user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@index([userId])
     @@index([expiresAt])
 }

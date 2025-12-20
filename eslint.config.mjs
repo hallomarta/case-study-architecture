@@ -4,6 +4,9 @@ import tseslint from 'typescript-eslint';
 import jest from 'eslint-plugin-jest';
 
 export default defineConfig(
+    {
+        ignores: ['dist/**', 'node_modules/**'],
+    },
     eslint.configs.recommended,
     tseslint.configs.recommended,
     {

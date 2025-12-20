@@ -15,6 +15,8 @@
     "build": "rimraf ./dist && tsc -p tsconfig.build.json",
     "start": "node ./dist/src/index.js",
     "test": "jest -c ./jest.config.json",
+    "test:unit": "jest -c ./jest.config.json --testPathPatterns=\"src/\"",
+    "test:e2e": "jest -c ./jest.config.json --testPathPatterns=\"tests/e2e\" --runInBand",
     "test:watch": "jest -c ./jest.config.json --watchAll=true"
   },
   "devDependencies": {

@@ -7,8 +7,11 @@ export const TOKEN = {
     // Services
     UserService: Symbol.for('UserService'),
     PasswordManagerService: Symbol.for('PasswordManagerService'),
+    PasswordService: Symbol.for('PasswordService'),
+    MailService: Symbol.for('MailService'),
 
     // Repositories
     UserRepository: Symbol.for('UserRepository'),
     RefreshTokenRepository: Symbol.for('RefreshTokenRepository'),
+    PasswordResetTokenRepository: Symbol.for('PasswordResetTokenRepository'),
 };

@@ -48,7 +48,9 @@ const envSchema = z.object({
     JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
     JWT_REFRESH_SECRET: z.string().min(1, 'JWT_REFRESH_SECRET is required'),
     JWT_EXPIRES_IN: z.string().min(1, 'JWT_EXPIRES_IN is required'),
-    JWT_REFRESH_EXPIRES_IN: z.string().min(1, 'JWT_REFRESH_EXPIRES_IN is required'),
+    JWT_REFRESH_EXPIRES_IN: z
+        .string()
+        .min(1, 'JWT_REFRESH_EXPIRES_IN is required'),
     ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
 });
 
@@ -143,7 +145,10 @@ export function loadConfig(overrides?: Partial<Config>): Config {
             : getDefaultLogLevel(env.NODE_ENV),
         accessTokenSecret: env.JWT_SECRET,
         refreshTokenSecret: env.JWT_REFRESH_SECRET,
-        accessTokenExpiresIn: parseDuration(env.JWT_EXPIRES_IN, 'JWT_EXPIRES_IN'),
+        accessTokenExpiresIn: parseDuration(
+            env.JWT_EXPIRES_IN,
+            'JWT_EXPIRES_IN'
+        ),
         refreshTokenExpiresIn: parseDuration(
             env.JWT_REFRESH_EXPIRES_IN,
             'JWT_REFRESH_EXPIRES_IN'

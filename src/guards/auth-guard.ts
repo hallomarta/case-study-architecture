@@ -16,7 +16,7 @@ interface JWTPayload {
 
 @injectable()
 export class AuthGuard implements ExpressGuard {
-    constructor(@inject(TOKEN.Config) private config: Config) { }
+    constructor(@inject(TOKEN.Config) private config: Config) {}
 
     public activate(request: Request): boolean {
         const authHeader = request.headers.authorization;
