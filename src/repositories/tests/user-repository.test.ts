@@ -9,9 +9,8 @@ describe('UserRepository', () => {
     let mockPrisma: Mocked<PrismaClient>;
 
     beforeAll(async () => {
-        const { unit, unitRef } = await TestBed.solitary(
-            UserRepositoryImpl
-        ).compile();
+        const { unit, unitRef } =
+            await TestBed.solitary(UserRepositoryImpl).compile();
         repository = unit;
         mockPrisma = unitRef.get<PrismaClient>(TOKEN.PrismaClient);
     });
@@ -76,7 +75,8 @@ describe('UserRepository', () => {
 
             mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-            const result = await repository.findByEmailWithIdentity('test@example.com');
+            const result =
+                await repository.findByEmailWithIdentity('test@example.com');
 
             expect(result).toEqual(mockUser);
             expect(result?.identities).toBeDefined();
@@ -107,9 +107,12 @@ describe('UserRepository', () => {
                 identities: [],
             };
 
-            mockPrisma.user.findUnique.mockResolvedValue(mockUserWithoutIdentities);
+            mockPrisma.user.findUnique.mockResolvedValue(
+                mockUserWithoutIdentities
+            );
 
-            const result = await repository.findByEmailWithIdentity('test@example.com');
+            const result =
+                await repository.findByEmailWithIdentity('test@example.com');
 
             expect(result).toBeNull();
         });
@@ -198,7 +201,9 @@ describe('UserRepository', () => {
                 identities: [],
             };
 
-            mockPrisma.user.findUnique.mockResolvedValue(mockUserWithoutIdentities);
+            mockPrisma.user.findUnique.mockResolvedValue(
+                mockUserWithoutIdentities
+            );
 
             const result = await repository.findByIdWithIdentity('123');
 

@@ -27,7 +27,7 @@ export class BaseController {
                 })
                 .strict()
         )
-        message: TestMessage
+            message: TestMessage
     ): Promise<TestMessage> {
         return {
             ...message,

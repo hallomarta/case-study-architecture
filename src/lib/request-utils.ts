@@ -1,5 +1,5 @@
 import type { Request } from 'express';
-import type { AuthenticatedUser } from "../types/AuthenticatedUser";
+import type { AuthenticatedUser } from '../types/AuthenticatedUser';
 
 /**
  * Extracts authenticated user from request.

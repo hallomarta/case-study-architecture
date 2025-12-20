@@ -177,8 +177,11 @@ describe('User Authentication E2E Tests', () => {
                 .expect(200);
 
             expect(response.body).toHaveProperty('access_token');
+            expect(response.body).toHaveProperty('refresh_token');
             expect(typeof response.body.access_token).toBe('string');
+            expect(typeof response.body.refresh_token).toBe('string');
             expect(response.body.access_token.length).toBeGreaterThan(0);
+            expect(response.body.refresh_token.length).toBeGreaterThan(0);
         });
 
         it('should fail with invalid email', async () => {
@@ -240,6 +243,221 @@ describe('User Authentication E2E Tests', () => {
 
             expect(response.body).toHaveProperty('message');
             expect(response.body.message).toContain('Too many login attempts');
+        });
+    });
+
+    describe('POST /users/refresh', () => {
+        let refreshToken: string;
+
+        beforeEach(async () => {
+            // Register and login to get tokens
+            await request(app)
+                .post('/users/register')
+                .send({
+                    email: 'test@example.com',
+                    password: 'Test123456',
+                    firstName: 'John',
+                    lastName: 'Doe',
+                });
+
+            const loginResponse = await request(app)
+                .post('/users/login')
+                .send({
+                    email: 'test@example.com',
+                    password: 'Test123456',
+                });
+
+            refreshToken = loginResponse.body.refresh_token;
+        });
+
+        it('should refresh access token with valid refresh token', async () => {
+            const response = await request(app)
+                .post('/users/refresh')
+                .send({ refresh_token: refreshToken })
+                .expect(200);
+
+            expect(response.body).toHaveProperty('access_token');
+            expect(response.body).toHaveProperty('refresh_token');
+            expect(response.body.refresh_token).not.toBe(refreshToken); // Token rotation
+        });
+
+        it('should fail with invalid refresh token', async () => {
+            const response = await request(app)
+                .post('/users/refresh')
+                .send({ refresh_token: 'invalid-token' })
+                .expect(401);
+
+            expect(response.body).toHaveProperty('message');
+        });
+
+        it('should fail with missing refresh token', async () => {
+            const response = await request(app)
+                .post('/users/refresh')
+                .send({})
+                .expect(400);
+
+            expect(response.body).toHaveProperty('message');
+        });
+
+        it('should not allow reuse of rotated refresh token', async () => {
+            // First refresh - should succeed
+            await request(app)
+                .post('/users/refresh')
+                .send({ refresh_token: refreshToken })
+                .expect(200);
+
+            // Second refresh with same token - should fail (token was rotated)
+            const response = await request(app)
+                .post('/users/refresh')
+                .send({ refresh_token: refreshToken })
+                .expect(401);
+
+            expect(response.body).toHaveProperty('message');
+        });
+
+        it('should invalidate entire token family when reuse is detected', async () => {
+            // Step 1: First refresh - legitimate client gets new token pair
+            const firstRefresh = await request(app)
+                .post('/users/refresh')
+                .send({ refresh_token: refreshToken })
+                .expect(200);
+
+            const newRefreshToken = firstRefresh.body.refresh_token;
+            expect(newRefreshToken).not.toBe(refreshToken);
+
+            // Step 2: Attacker tries to use the stolen (old) token
+            // This should trigger family invalidation
+            await request(app)
+                .post('/users/refresh')
+                .send({ refresh_token: refreshToken })
+                .expect(401);
+
+            // Step 3: Legitimate client's new token should now also be invalid
+            // because the entire token family was invalidated
+            const response = await request(app)
+                .post('/users/refresh')
+                .send({ refresh_token: newRefreshToken })
+                .expect(401);
+
+            expect(response.body).toHaveProperty('message');
+        });
+    });
+
+    describe('POST /users/logout', () => {
+        let accessToken: string;
+        let refreshToken: string;
+
+        beforeEach(async () => {
+            // Register and login to get tokens
+            await request(app)
+                .post('/users/register')
+                .send({
+                    email: 'test@example.com',
+                    password: 'Test123456',
+                    firstName: 'John',
+                    lastName: 'Doe',
+                });
+
+            const loginResponse = await request(app)
+                .post('/users/login')
+                .send({
+                    email: 'test@example.com',
+                    password: 'Test123456',
+                });
+
+            accessToken = loginResponse.body.access_token;
+            refreshToken = loginResponse.body.refresh_token;
+        });
+
+        it('should logout and invalidate refresh token', async () => {
+            // Logout
+            await request(app)
+                .post('/users/logout')
+                .set('Authorization', `Bearer ${accessToken}`)
+                .send({ refresh_token: refreshToken })
+                .expect(200);
+
+            // Try to refresh with revoked token
+            const response = await request(app)
+                .post('/users/refresh')
+                .send({ refresh_token: refreshToken })
+                .expect(401);
+
+            expect(response.body).toHaveProperty('message');
+        });
+
+        it('should fail without authorization token', async () => {
+            const response = await request(app)
+                .post('/users/logout')
+                .send({ refresh_token: refreshToken });
+
+            expect(response.status).toBe(401);
+        });
+    });
+
+    describe('POST /users/logout-all', () => {
+        let accessToken: string;
+        let refreshToken1: string;
+        let refreshToken2: string;
+
+        beforeEach(async () => {
+            // Register user
+            await request(app)
+                .post('/users/register')
+                .send({
+                    email: 'test@example.com',
+                    password: 'Test123456',
+                    firstName: 'John',
+                    lastName: 'Doe',
+                });
+
+            // Login twice to simulate multiple devices
+            const login1 = await request(app)
+                .post('/users/login')
+                .send({
+                    email: 'test@example.com',
+                    password: 'Test123456',
+                });
+
+            const login2 = await request(app)
+                .post('/users/login')
+                .send({
+                    email: 'test@example.com',
+                    password: 'Test123456',
+                });
+
+            accessToken = login1.body.access_token;
+            refreshToken1 = login1.body.refresh_token;
+            refreshToken2 = login2.body.refresh_token;
+        });
+
+        it('should logout from all devices', async () => {
+            // Logout all
+            const logoutResponse = await request(app)
+                .post('/users/logout-all')
+                .set('Authorization', `Bearer ${accessToken}`);
+
+            expect(logoutResponse.status).toBe(200);
+
+            // Both refresh tokens should be invalid
+            const refresh1 = await request(app)
+                .post('/users/refresh')
+                .send({ refresh_token: refreshToken1 });
+
+            expect(refresh1.status).toBe(401);
+
+            const refresh2 = await request(app)
+                .post('/users/refresh')
+                .send({ refresh_token: refreshToken2 });
+
+            expect(refresh2.status).toBe(401);
+        });
+
+        it('should fail without authorization token', async () => {
+            const response = await request(app)
+                .post('/users/logout-all');
+
+            expect(response.status).toBe(401);
         });
     });
 

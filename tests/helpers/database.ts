@@ -5,6 +5,7 @@ import prisma from '../../src/lib/prisma';
  */
 export async function cleanDatabase(): Promise<void> {
     // Delete in correct order due to foreign key constraints
+    await prisma.refreshToken.deleteMany({});
     await prisma.userIdentity.deleteMany({});
     await prisma.user.deleteMany({});
 }

@@ -6,10 +6,13 @@ import { InversifyExpressHttpAdapter } from '@inversifyjs/http-express';
 import { InversifyValidationErrorFilter } from '@inversifyjs/http-validation';
 import { StandardSchemaValidationPipe } from '@inversifyjs/standard-schema-validation';
 import { diContainer } from '../../inversify.config';
+import { getConfig } from './config';
 
 export async function getApp(): Promise<Application> {
+    const config = getConfig();
+
     const adapter = new InversifyExpressHttpAdapter(diContainer, {
-        logger: process.env.NODE_ENV !== 'test',
+        logger: config.nodeEnv !== 'test',
         useCookies: true,
     });
 
@@ -24,12 +27,9 @@ export async function getApp(): Promise<Application> {
     app.use(helmet());
 
     // CORS configuration
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [
-        'http://localhost:3000',
-    ];
     app.use(
         cors({
-            origin: allowedOrigins,
+            origin: config.allowedOrigins,
             credentials: true,
         })
     );

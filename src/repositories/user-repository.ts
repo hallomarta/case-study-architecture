@@ -17,7 +17,7 @@ export interface UpdateUserData {
 
 /**
  * Repository for User data access.
- * 
+ *
  * SECURITY NOTE: By default, methods return users WITHOUT identity information
  * to prevent accidental leakage of password hashes. Use explicit methods
  * (e.g., findByEmailWithIdentity) when you need authentication data.
@@ -63,9 +63,7 @@ export interface UserRepository {
 
 @injectable()
 export class UserRepositoryImpl implements UserRepository {
-    constructor(
-        @inject(TOKEN.PrismaClient) private prisma: PrismaClient
-    ) { }
+    constructor(@inject(TOKEN.PrismaClient) private prisma: PrismaClient) {}
 
     async findByEmail(email: string): Promise<SafeUser | null> {
         return this.prisma.user.findUnique({
@@ -74,7 +72,9 @@ export class UserRepositoryImpl implements UserRepository {
         });
     }
 
-    async findByEmailWithIdentity(email: string): Promise<UserWithIdentity | null> {
+    async findByEmailWithIdentity(
+        email: string
+    ): Promise<UserWithIdentity | null> {
         const user = await this.prisma.user.findUnique({
             where: { email },
             include: { identities: true },

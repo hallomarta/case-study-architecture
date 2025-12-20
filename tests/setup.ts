@@ -1,7 +1,6 @@
 import 'reflect-metadata';
 import '@suites/di.inversify';
-import { config } from 'dotenv';
 
-// Load environment variables for tests
-config();
+// Config is loaded automatically via inversify.config.ts import chain
+// NODE_ENV=test ensures .env.test is loaded
 

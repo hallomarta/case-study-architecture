@@ -8,14 +8,20 @@ import { UserController } from './src/controllers/user-controller';
 import { LoginRateLimitMiddleware } from './src/middleware/rate-limit-middleware';
 
 import { UserRepository, UserRepositoryImpl } from './src/repositories/user-repository';
+import { RefreshTokenRepository, RefreshTokenRepositoryImpl } from './src/repositories/refresh-token-repository';
 import { AuthGuard } from './src/guards/auth-guard';
 
 import { TOKEN } from './src/lib/tokens';
 import { PasswordManagerService, PasswordManagerServiceImpl } from './src/services/password-manager-service';
 import { UserService, UserServiceImpl } from './src/services/user-service';
 import prisma from './src/lib/prisma';
+import { config } from './src/lib/config';
+import type { Config } from './src/types/Config';
 
 export const diContainer = new Container();
+
+// Register Config as a singleton
+diContainer.bind<Config>(TOKEN.Config).toConstantValue(config);
 
 // Register PrismaClient as a singleton
 diContainer.bind<PrismaClient>(TOKEN.PrismaClient).toConstantValue(prisma);
@@ -42,3 +48,6 @@ diContainer
 
 // bind repositories
 diContainer.bind<UserRepository>(TOKEN.UserRepository).to(UserRepositoryImpl);
+diContainer
+    .bind<RefreshTokenRepository>(TOKEN.RefreshTokenRepository)
+    .to(RefreshTokenRepositoryImpl);

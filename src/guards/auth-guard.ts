@@ -1,9 +1,11 @@
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 import jwt from 'jsonwebtoken';
 import { UnauthorizedHttpResponse } from '@inversifyjs/http-core';
 import { ExpressGuard } from '@inversifyjs/http-express';
 import type { Request } from 'express';
-import type { AuthenticatedUser } from "types/AuthenticatedUser";
+import type { AuthenticatedUser } from 'types/AuthenticatedUser';
+import { TOKEN } from '../lib/tokens';
+import type { Config } from '../types/Config';
 
 interface JWTPayload {
     sub: string;
@@ -14,6 +16,8 @@ interface JWTPayload {
 
 @injectable()
 export class AuthGuard implements ExpressGuard {
+    constructor(@inject(TOKEN.Config) private config: Config) { }
+
     public activate(request: Request): boolean {
         const authHeader = request.headers.authorization;
 
@@ -39,13 +43,8 @@ export class AuthGuard implements ExpressGuard {
         const token = parts[1];
 
         try {
-            const jwtSecret = process.env.JWT_SECRET;
-            if (!jwtSecret) {
-                throw new Error('JWT_SECRET is not configured');
-            }
-
             // Verify and decode token with explicit algorithm restriction
-            const payload = jwt.verify(token, jwtSecret, {
+            const payload = jwt.verify(token, this.config.accessTokenSecret, {
                 algorithms: ['HS256'],
             }) as JWTPayload;
 

@@ -3,15 +3,25 @@ import { AuthGuard } from '../auth-guard';
 import { UnauthorizedHttpResponse } from '@inversifyjs/http-core';
 import jwt from 'jsonwebtoken';
 import type { Request } from 'express';
+import { TOKEN } from '../../lib/tokens';
+import { createTestConfig } from '../../lib/config';
+import type { Config } from '../../types/Config';
 
 jest.mock('jsonwebtoken');
+
+const testConfig = createTestConfig({
+    accessTokenSecret: 'test-secret',
+});
 
 describe('AuthGuard', () => {
     let guard: AuthGuard;
     let mockRequest: Request;
 
     beforeAll(async () => {
-        const { unit } = await TestBed.solitary(AuthGuard).compile();
+        const { unit } = await TestBed.solitary(AuthGuard)
+            .mock<Config>(TOKEN.Config)
+            .final(testConfig)
+            .compile();
         guard = unit;
     });
 
@@ -19,7 +29,6 @@ describe('AuthGuard', () => {
         mockRequest = {
             headers: {},
         } as Request;
-        process.env.JWT_SECRET = 'test-secret';
         jest.clearAllMocks();
     });
 
@@ -113,17 +122,8 @@ describe('AuthGuard', () => {
             }).toThrow();
         });
 
-        it('should throw error if JWT_SECRET is not configured', () => {
-            delete process.env.JWT_SECRET;
-
-            mockRequest.headers = {
-                authorization: 'Bearer valid-token',
-            };
-
-            expect(() => guard.activate(mockRequest)).toThrow(
-                'JWT_SECRET is not configured'
-            );
-        });
+        // Note: JWT_SECRET configuration is now validated at startup by the config module,
+        // not at runtime in the guard. Config validation tests should be in config.test.ts.
 
         it('should handle malformed JWT payload', () => {
             mockRequest.headers = {

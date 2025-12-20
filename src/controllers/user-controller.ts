@@ -77,19 +77,26 @@ const updateProfileSchema = z
         { message: 'Fields cannot be empty strings' }
     );
 
+const refreshTokenSchema = z
+    .object({
+        refresh_token: z.string().min(1, 'Refresh token is required'),
+    })
+    .strict();
+
 type RegisterDto = z.infer<typeof registerSchema>;
 type LoginDto = z.infer<typeof loginSchema>;
 type UpdateProfileDto = z.infer<typeof updateProfileSchema>;
+type RefreshTokenDto = z.infer<typeof refreshTokenSchema>;
 
 @Controller('/users')
 export class UserController {
-    constructor(@inject(TOKEN.UserService) private userService: UserService) { }
+    constructor(@inject(TOKEN.UserService) private userService: UserService) {}
 
     @Post('/register')
     async register(
         @Body()
         @ValidateStandardSchemaV1(registerSchema)
-        userData: RegisterDto
+            userData: RegisterDto
     ): Promise<CreatedHttpResponse> {
         const user = await this.userService.register(userData);
         return new CreatedHttpResponse(user);
@@ -100,7 +107,7 @@ export class UserController {
     async login(
         @Body()
         @ValidateStandardSchemaV1(loginSchema)
-        credentials: LoginDto
+            credentials: LoginDto
     ) {
         return this.userService.authenticate(credentials);
     }
@@ -117,10 +124,40 @@ export class UserController {
     async updateProfile(
         @Body()
         @ValidateStandardSchemaV1(updateProfileSchema)
-        data: UpdateProfileDto,
+            data: UpdateProfileDto,
         @Request() request: ExpressRequest
     ) {
         const userId = getUser(request).id;
         return this.userService.updateProfile(userId, data);
+    }
+
+    @Post('/refresh')
+    async refresh(
+        @Body()
+        @ValidateStandardSchemaV1(refreshTokenSchema)
+            data: RefreshTokenDto
+    ) {
+        return this.userService.refreshAccessToken(data.refresh_token);
+    }
+
+    @Post('/logout')
+    @UseGuard(AuthGuard)
+    async logout(
+        @Body()
+        @ValidateStandardSchemaV1(refreshTokenSchema)
+            data: RefreshTokenDto,
+        @Request() request: ExpressRequest
+    ) {
+        const userId = getUser(request).id;
+        await this.userService.logout(userId, data.refresh_token);
+        return { message: 'Successfully logged out' };
+    }
+
+    @Post('/logout-all')
+    @UseGuard(AuthGuard)
+    async logoutAll(@Request() request: ExpressRequest) {
+        const userId = getUser(request).id;
+        await this.userService.logoutAll(userId);
+        return { message: 'Successfully logged out from all devices' };
     }
 }
