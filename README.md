@@ -16,6 +16,7 @@ This document outlines key architectural and security decisions made in this cas
 8. [Configuration Management](#configuration-management)
 9. [Logger Architecture](#logger-architecture)
 10. [Code Quality](#code-quality)
+11. [API Documentation (OpenAPI)](#api-documentation-openapi)
 
 ---
 
@@ -654,3 +655,63 @@ yarn format:check # Check formatting without changes
 ```
 
 Pre-commit hooks via `husky` and `lint-staged` run ESLint and Prettier on staged `.ts` files.
+
+---
+
+## API Documentation (OpenAPI)
+
+The API is documented using **OpenAPI 3.1** (formerly Swagger), with interactive documentation auto-generated from code via decorators.
+
+### Swagger UI
+
+An interactive API explorer is available at `/docs` in development mode:
+
+```
+http://localhost:9000/docs
+```
+
+The UI provides:
+- All available endpoints with request/response examples
+- Interactive "Try it out" functionality
+- Authentication testing with JWT tokens
+- Schema definitions and validation rules
+
+### Implementation
+
+OpenAPI documentation is generated from Zod schemas using `@inversifyjs/http-open-api`:
+
+```typescript
+@OasSummary('OAuth 2.0 token endpoint')
+@OasDescription('Authenticate with password grant or refresh with refresh_token grant')
+@OasRequestBody({
+    content: {
+        'application/json': {
+            schema: zodToOpenApi(tokenRequestSchema)
+        }
+    }
+})
+@OasResponse({ statusCode: 200, schema: zodToOpenApi(tokenResponseSchema) })
+@Post('/token')
+async token(@Body() request: TokenRequestDto): Promise<TokenResponse> {
+    // ...
+}
+```
+
+### Single Source of Truth
+
+Zod schemas define both **runtime validation** and **API documentation**:
+
+| Schema Purpose     | Used For                                |
+| ------------------ | --------------------------------------- |
+| Request validation | `@ValidateStandardSchemaV1` decorator   |
+| Response typing    | TypeScript types via `z.infer<>`        |
+| OpenAPI docs       | `zodToOpenApi()` helper converts to OAS |
+
+This prevents documentation drift - if the validation rules change, the API docs automatically update.
+
+### Benefits
+
+- **No manual documentation** - Generated from code
+- **Always accurate** - Docs match actual validation rules
+- **Type-safe** - TypeScript ensures schema consistency
+- **Interactive testing** - Swagger UI for manual testing
