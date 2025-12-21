@@ -1,31 +1,48 @@
 # syntax=docker/dockerfile:1
 
-FROM node:21-alpine3.18 AS builder
+FROM node:lts-alpine AS builder
 WORKDIR /app
+
+# Enable Corepack for Yarn 4
+RUN corepack enable
+
+# Copy package files
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn ./.yarn
+
+# Install dependencies
+RUN yarn install --frozen-lockfile
+
+# Copy source and prisma schema
 COPY . .
 
-ARG K8S_RDS_DB_NAME
-ARG K8S_RDS_MASTER_USERNAME
-ARG K8S_RDS_HOST
-ARG K8S_RDS_MASTER_PASSWORD
+# Generate Prisma Client (needs dummy DATABASE_URL for build)
+ENV DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"
+RUN yarn prisma generate
 
-RUN apk add openssh && \
-  apk add git && \
-  mkdir -p -m 0600 ~/.ssh && \
-  ssh-keyscan github.com >> ~/.ssh/known_hosts
-RUN --mount=type=ssh,id=github_ssh_key yarn install --production
+# Build application
 RUN yarn build
 
-ENV K8S_RDS_DB_NAME=$K8S_RDS_DB_NAME
-ENV K8S_RDS_MASTER_USERNAME=$K8S_RDS_MASTER_USERNAME
-ENV K8S_RDS_HOST=$K8S_RDS_HOST
-ENV K8S_RDS_MASTER_PASSWORD=$K8S_RDS_MASTER_PASSWORD
-
-FROM node:19-alpine3.16 AS final
+FROM node:lts-alpine AS final
 WORKDIR /app
-COPY ["package.json", "./"]
-COPY --from=builder /app/node_modules ./node_modules
+
+# Enable Corepack for Yarn 4
+RUN corepack enable
+
+# Copy package files
+COPY package.json yarn.lock .yarnrc.yml ./
+COPY .yarn ./.yarn
+
+# Install production dependencies only (Yarn 4 syntax)
+ENV NODE_ENV=production
+RUN yarn install --immutable
+
+# Copy built app and prisma files
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY prisma ./prisma
 
 EXPOSE 9000
-CMD ["yarn", "start" ]
+
+# Start server (migrations should be run separately in CI/CD)
+CMD ["node", "dist/src/index.js"]

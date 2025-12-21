@@ -2,7 +2,13 @@ node_modules
 
 dist
 
+# Test coverage
+coverage
+*.lcov
+
 .env
+.env.test
+.env.docker
 
 # Logs
 logs

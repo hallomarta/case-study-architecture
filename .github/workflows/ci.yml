@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18.1
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: development
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: yarn prisma generate
+        env:
+          DATABASE_URL: postgresql://postgres:development@localhost:5432/postgres?schema=public
+
+      - name: Run database migrations
+        run: yarn prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://postgres:development@localhost:5432/postgres?schema=public
+
+      - name: Run format check
+        run: yarn format:check
+
+      - name: Run linter
+        run: yarn lint
+
+      - name: Run type check
+        run: yarn typecheck
+
+      - name: Run tests with coverage
+        run: yarn test:coverage
+        env:
+          DATABASE_URL: postgresql://postgres:development@localhost:5432/postgres?schema=public
+          JWT_SECRET: test-jwt-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+          JWT_EXPIRES_IN: 5s
+          JWT_REFRESH_EXPIRES_IN: 10s
+          NODE_ENV: test
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

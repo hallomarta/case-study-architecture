@@ -4,8 +4,12 @@
         "outDir": "./dist",
         "sourceMap": true,
         "noImplicitAny": false,
-        "target": "es5",
-        "lib": ["es2016", "dom"],
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "target": "ES2022",
+        "lib": [
+            "ES2022"
+        ],
         "module": "commonjs",
         "moduleResolution": "node",
         "resolveJsonModule": true,
@@ -17,9 +21,24 @@
         "strict": true,
         "experimentalDecorators": true,
         "emitDecoratorMetadata": true,
-        "types": ["reflect-metadata", "node", "@types/jest"],
-        "typeRoots": ["node_modules/@types", "src/@types"]
+        "skipLibCheck": true,
+        "types": [
+            "node",
+            "jest"
+        ],
+        "typeRoots": [
+            "node_modules/@types",
+            "src/@types"
+        ]
     },
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "**/*.test.ts"]
+    "include": [
+        "src/**/*",
+        "src/@types/**/*"
+    ],
+    "exclude": [
+        "node_modules"
+    ],
+    "ts-node": {
+        "files": true
+    }
 }
