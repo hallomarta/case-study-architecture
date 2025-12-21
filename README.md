@@ -1,5 +1,7 @@
 # Design Decisions
 
+[![codecov](https://codecov.io/gh/adrianwix/case-study-user-auth-architecture/graph/badge.svg)](https://codecov.io/gh/adrianwix/case-study-user-auth-architecture)
+
 This document outlines key architectural and security decisions made in this case study.
 
 ## Table of Contents
