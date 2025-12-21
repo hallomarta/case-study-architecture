@@ -42,16 +42,13 @@ export interface UserService {
 
     /**
      * Find a user by ID
+     * @throws NotFoundHttpResponse if user not found
      */
-    findById(userId: string): Promise<SafeUser | null>;
-
-    /**
-     * Find a user by email
-     */
-    findByEmail(email: string): Promise<SafeUser | null>;
+    findById(userId: string): Promise<SafeUser>;
 
     /**
      * Update user profile
+     * @throws NotFoundHttpResponse if user not found
      */
     updateProfile(userId: string, data: UpdateProfileDto): Promise<SafeUser>;
 }
@@ -90,19 +87,7 @@ export class UserServiceImpl implements UserService {
         return user;
     }
 
-    async findById(userId: string): Promise<SafeUser | null> {
-        return this.userRepository.findById(userId);
-    }
-
-    async findByEmail(email: string): Promise<SafeUser | null> {
-        return this.userRepository.findByEmail(email);
-    }
-
-    async updateProfile(
-        userId: string,
-        data: UpdateProfileDto
-    ): Promise<SafeUser> {
-        // Verify user exists
+    async findById(userId: string): Promise<SafeUser> {
         const user = await this.userRepository.findById(userId);
         if (!user) {
             throw new NotFoundHttpResponse(
@@ -110,6 +95,15 @@ export class UserServiceImpl implements UserService {
                 'User not found'
             );
         }
+        return user;
+    }
+
+    async updateProfile(
+        userId: string,
+        data: UpdateProfileDto
+    ): Promise<SafeUser> {
+        // Verify user exists (throws NotFoundHttpResponse if not found)
+        await this.findById(userId);
 
         // Update returns SafeUser without identities
         return this.userRepository.update(userId, data);

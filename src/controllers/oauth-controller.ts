@@ -269,18 +269,19 @@ export class OAuthController {
         },
         description: 'Not authenticated',
     })
+    @OasResponse(HttpStatusCode.NOT_FOUND, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'User not found',
+    })
     @Get('/userinfo')
     @UseGuard(AuthGuard)
     async userinfo(@Request() request: ExpressRequest) {
         const userId = getUser(request).id;
         const user = await this.userService.findById(userId);
-
-        if (!user) {
-            throw new BadRequestHttpResponse(
-                { message: 'User not found' },
-                'User not found'
-            );
-        }
 
         // Return OIDC standard claims
         return {

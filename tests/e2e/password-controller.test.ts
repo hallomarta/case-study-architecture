@@ -243,7 +243,7 @@ describe('Password Reset E2E Tests', () => {
                     newPassword: 'NewPassword123',
                 });
 
-            expect(response.status).toBe(500);
+            expect(response.status).toBe(401);
         });
 
         it('should fail with expired token', async () => {
@@ -267,7 +267,7 @@ describe('Password Reset E2E Tests', () => {
                     newPassword: 'NewPassword123',
                 });
 
-            expect(response.status).toBe(500);
+            expect(response.status).toBe(401);
         });
 
         it('should fail with already used token', async () => {
@@ -292,7 +292,7 @@ describe('Password Reset E2E Tests', () => {
                     newPassword: 'NewPassword123',
                 });
 
-            expect(response.status).toBe(500);
+            expect(response.status).toBe(401);
         });
 
         it('should mark token as used after successful reset', async () => {

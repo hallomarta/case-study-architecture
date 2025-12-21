@@ -1,4 +1,5 @@
 import { TestBed, type Mocked } from '@suites/unit';
+import { UnauthorizedHttpResponse } from '@inversifyjs/http-core';
 import { PasswordServiceImpl } from '../password-service';
 import type { UserRepository } from '../../repositories/user-repository';
 import type { PasswordResetTokenRepository } from '../../repositories/password-reset-token-repository';
@@ -261,17 +262,17 @@ describe('PasswordService', () => {
             expect(result.message).toContain('successfully');
         });
 
-        it('should throw error for invalid token', async () => {
+        it('should throw UnauthorizedHttpResponse for invalid token', async () => {
             mockPasswordResetTokenRepository.findValidByTokenHash.mockResolvedValue(
                 null
             );
 
             await expect(
                 service.resetPassword('invalid-token', 'NewPassword123')
-            ).rejects.toThrow('Invalid or expired reset token');
+            ).rejects.toThrow(UnauthorizedHttpResponse);
         });
 
-        it('should throw error if user not found', async () => {
+        it('should throw UnauthorizedHttpResponse if user not found', async () => {
             mockPasswordResetTokenRepository.findValidByTokenHash.mockResolvedValue(
                 mockResetToken
             );
@@ -279,7 +280,7 @@ describe('PasswordService', () => {
 
             await expect(
                 service.resetPassword('valid-token', 'NewPassword123')
-            ).rejects.toThrow('Invalid or expired reset token');
+            ).rejects.toThrow(UnauthorizedHttpResponse);
         });
 
         it('should hash the new password', async () => {

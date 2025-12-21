@@ -4,7 +4,7 @@ import { TOKEN } from '../lib/tokens';
 import type { IdentityProvider } from '../providers/identity-provider';
 import type { TokenService, TokenResponse } from './token-service';
 import type { SessionService } from './session-service';
-import type { UserService } from './user-service';
+import type { UserRepository } from '../repositories/user-repository';
 
 /**
  * OAuth Service
@@ -20,7 +20,7 @@ export class OAuthService {
         private identityProvider: IdentityProvider,
         @inject(TOKEN.TokenService) private tokenService: TokenService,
         @inject(TOKEN.SessionService) private sessionService: SessionService,
-        @inject(TOKEN.UserService) private userService: UserService
+        @inject(TOKEN.UserRepository) private userRepository: UserRepository
     ) {}
 
     /**
@@ -78,7 +78,7 @@ export class OAuthService {
             await this.sessionService.rotateSession(refreshToken);
 
         // Get user data for token generation
-        const user = await this.userService.findById(userId);
+        const user = await this.userRepository.findById(userId);
         if (!user) {
             throw new BadRequestHttpResponse(
                 { message: 'User not found' },

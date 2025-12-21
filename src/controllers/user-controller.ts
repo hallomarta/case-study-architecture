@@ -138,12 +138,19 @@ export class UserController {
         },
         description: 'Not authenticated',
     })
+    @OasResponse(HttpStatusCode.NOT_FOUND, {
+        content: {
+            'application/json': {
+                schema: zodToOpenApi(errorResponseSchema),
+            },
+        },
+        description: 'User not found',
+    })
     @Get('/profile')
     @UseGuard(AuthGuard)
     async getProfile(@Request() request: ExpressRequest) {
         const userId = getUser(request).id;
-        const user = await this.userService.findById(userId);
-        return user;
+        return this.userService.findById(userId);
     }
 
     /**

@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { inject, injectable } from 'inversify';
+import { UnauthorizedHttpResponse } from '@inversifyjs/http-core';
 import { TOKEN } from '../lib/tokens';
 import { createLogger } from '../lib/logger';
 import type { Config } from '../types/Config';
@@ -195,7 +196,10 @@ export class PasswordServiceImpl implements PasswordService {
             logger.warn('Invalid or expired password reset token used', {
                 event: 'PASSWORD_RESET_INVALID_TOKEN',
             });
-            throw new Error('Invalid or expired reset token');
+            throw new UnauthorizedHttpResponse(
+                { message: 'Invalid or expired reset token' },
+                'Invalid or expired reset token'
+            );
         }
 
         // Get user to verify they exist
@@ -205,7 +209,10 @@ export class PasswordServiceImpl implements PasswordService {
                 event: 'PASSWORD_RESET_USER_NOT_FOUND',
                 tokenId: resetToken.id,
             });
-            throw new Error('Invalid or expired reset token');
+            throw new UnauthorizedHttpResponse(
+                { message: 'Invalid or expired reset token' },
+                'Invalid or expired reset token'
+            );
         }
 
         // Hash new password

@@ -3,7 +3,7 @@ import { OAuthService } from '../oauth-service';
 import type { IdentityProvider } from '../../providers/identity-provider';
 import type { TokenService } from '../token-service';
 import type { SessionService } from '../session-service';
-import type { UserService } from '../user-service';
+import type { UserRepository } from '../../repositories/user-repository';
 import type { SafeUser } from '../../entities/user';
 import { TOKEN } from '../../lib/tokens';
 import { BadRequestHttpResponse } from '@inversifyjs/http-core';
@@ -13,7 +13,7 @@ describe('OAuthService', () => {
     let mockIdentityProvider: Mocked<IdentityProvider>;
     let mockTokenService: Mocked<TokenService>;
     let mockSessionService: Mocked<SessionService>;
-    let mockUserService: Mocked<UserService>;
+    let mockUserRepository: Mocked<UserRepository>;
 
     beforeAll(async () => {
         const { unit, unitRef } =
@@ -25,7 +25,7 @@ describe('OAuthService', () => {
         );
         mockTokenService = unitRef.get<TokenService>(TOKEN.TokenService);
         mockSessionService = unitRef.get<SessionService>(TOKEN.SessionService);
-        mockUserService = unitRef.get<UserService>(TOKEN.UserService);
+        mockUserRepository = unitRef.get<UserRepository>(TOKEN.UserRepository);
     });
 
     beforeEach(() => {
@@ -110,7 +110,7 @@ describe('OAuthService', () => {
                 email: 'user@example.com',
                 familyId: 'family-123',
             });
-            mockUserService.findById.mockResolvedValue(mockUser);
+            mockUserRepository.findById.mockResolvedValue(mockUser);
             mockTokenService.generateTokens.mockReturnValue({
                 accessToken: mockAccessToken,
                 refreshToken: 'unused-refresh-token',
@@ -123,7 +123,7 @@ describe('OAuthService', () => {
             expect(mockSessionService.rotateSession).toHaveBeenCalledWith(
                 refreshToken
             );
-            expect(mockUserService.findById).toHaveBeenCalledWith(userId);
+            expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
             expect(mockTokenService.generateTokens).toHaveBeenCalledWith(
                 mockUser
             );
@@ -147,7 +147,7 @@ describe('OAuthService', () => {
                 email: 'user@example.com',
                 familyId: 'family-123',
             });
-            mockUserService.findById.mockResolvedValue(null);
+            mockUserRepository.findById.mockResolvedValue(null);
 
             await expect(
                 service.handleRefreshTokenGrant(refreshToken)
@@ -156,7 +156,7 @@ describe('OAuthService', () => {
             expect(mockSessionService.rotateSession).toHaveBeenCalledWith(
                 refreshToken
             );
-            expect(mockUserService.findById).toHaveBeenCalledWith(userId);
+            expect(mockUserRepository.findById).toHaveBeenCalledWith(userId);
             expect(mockTokenService.generateTokens).not.toHaveBeenCalled();
         });
     });
