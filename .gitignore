@@ -8,6 +8,7 @@ coverage
 
 .env
 .env.test
+.env.docker
 
 # Logs
 logs

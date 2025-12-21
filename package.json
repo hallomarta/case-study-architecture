@@ -17,7 +17,9 @@
     "test": "jest -c ./jest.config.json",
     "test:unit": "jest -c ./jest.config.json --testPathPatterns=\"src/\"",
     "test:e2e": "jest -c ./jest.config.json --testPathPatterns=\"tests/e2e\" --runInBand",
-    "test:coverage": "yarn test --coverage --silent --runInBand"
+    "test:coverage": "yarn test --coverage --silent --runInBand",
+    "docker:build": "docker build -t case-study-auth:latest .",
+    "docker:run": "docker run -p 9000:9000 --env-file .env.docker case-study-auth:latest"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
