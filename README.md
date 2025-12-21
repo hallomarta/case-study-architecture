@@ -1,8 +1,95 @@
-# Design Decisions
+# User Authentication Architecture - Case Study
 
 [![codecov](https://codecov.io/gh/adrianwix/case-study-user-auth-architecture/graph/badge.svg)](https://codecov.io/gh/adrianwix/case-study-user-auth-architecture)
 
-This document outlines key architectural and security decisions made in this case study.
+An authentication service implementing OAuth 2.0 conventions, refresh token rotation, and comprehensive security best practices.
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (see `.nvmrc` for version)
+- Docker and Docker Compose
+- PostgreSQL 18 (via Docker)
+
+### Setup
+
+1. **Copy environment files**:
+   ```bash
+   cp example.env .env
+   cp example.env.test .env.test
+   cp example.env.docker .env.docker  # If using Docker
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   yarn install
+   ```
+
+### Running Locally
+
+Start the development server:
+
+```bash
+# Start PostgreSQL
+docker compose up -d
+
+# Run database migrations
+yarn prisma:deploy
+
+# Start development server (auto-generates Prisma Client)
+yarn dev
+```
+
+The API will be available at `http://localhost:9000`  
+API documentation: `http://localhost:9000/docs`
+
+### Running with Docker
+
+Build and run the containerized application:
+
+```bash
+# Build Docker image
+yarn docker:build
+
+# Run container
+yarn docker:run
+```
+
+The container connects to your local PostgreSQL via `host.docker.internal:5432`.
+
+### Testing
+
+```bash
+# Run unit tests (parallel execution)
+yarn test:unit
+
+# Run e2e tests (sequential with real database)
+yarn test:e2e
+
+# Run all tests with coverage
+yarn test:coverage
+```
+
+### Code Quality
+
+```bash
+# Run all checks (format, lint, typecheck)
+yarn ci
+
+# Individual checks
+yarn format:check  # Prettier
+yarn lint          # ESLint
+yarn typecheck     # TypeScript
+```
+
+---
+
+# Design Decisions
+
+The following sections outline key architectural and security decisions made in this case study.
 
 ## Table of Contents
 
