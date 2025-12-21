@@ -2,7 +2,7 @@ import { scrypt, randomBytes } from 'crypto';
 import { injectable } from 'inversify';
 import { promisify } from 'util';
 
-export interface PasswordManagerService {
+export interface PasswordUtilityService {
     toHash(password: string): Promise<string>;
     compare(storedPassword: string, suppliedPassword: string): Promise<boolean>;
 }
@@ -14,7 +14,7 @@ const scryptAsync = promisify(scrypt);
  * and compares user supplied password with the stored hash
  */
 @injectable()
-export class PasswordManagerServiceImpl implements PasswordManagerService {
+export class PasswordUtilityServiceImpl implements PasswordUtilityService {
     async toHash(password: string): Promise<string> {
         const salt = randomBytes(32).toString('hex');
         const derivedKey = (await scryptAsync(password, salt, 64)) as Buffer;

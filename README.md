@@ -53,31 +53,40 @@ OAuthController
     ↓
 OAuthService
     ├→ IdentityProvider (LocalIdentityProvider)
-    │   ├→ PasswordManagerService
+    │   ├→ PasswordUtilityService
     │   └→ UserRepository
     ├→ TokenService
     │   └→ Config
     ├→ SessionService
     │   ├→ TokenService
     │   └→ RefreshTokenRepository
-    └→ UserService
-        ├→ PasswordManagerService
-        └→ UserRepository
+    └→ UserRepository
 
 UserController
     ↓
 UserService
-    ├→ PasswordManagerService
+    ├→ PasswordUtilityService
     └→ UserRepository
+
+PasswordController
+    ↓
+PasswordService
+    ├→ UserRepository
+    ├→ PasswordResetTokenRepository
+    ├→ RefreshTokenRepository
+    ├→ PasswordUtilityService
+    └→ MailService
 ```
 
-| Service              | Responsibility                                                   |
-| -------------------- | ---------------------------------------------------------------- |
-| **OAuthService**     | OAuth 2.0 grant type workflows (password, refresh_token)         |
-| **TokenService**     | JWT generation (access_token, id_token), verification            |
-| **SessionService**   | Refresh token lifecycle: create, rotate, revoke, reuse detection |
-| **UserService**      | User CRUD operations only (no auth logic)                        |
-| **IdentityProvider** | Authentication strategy abstraction                              |
+| Service                    | Responsibility                                                   |
+| -------------------------- | ---------------------------------------------------------------- |
+| **OAuthService**           | OAuth 2.0 grant type workflows (password, refresh_token)         |
+| **TokenService**           | JWT generation (access_token, id_token), verification            |
+| **SessionService**         | Refresh token lifecycle: create, rotate, revoke, reuse detection |
+| **UserService**            | User CRUD operations only (no auth logic)                        |
+| **PasswordService**        | Password reset flow: token generation, validation, reset         |
+| **PasswordUtilityService** | Password hashing and comparison (scrypt)                         |
+| **IdentityProvider**       | Authentication strategy abstraction                              |
 
 ### Identity Provider Pattern
 
@@ -86,13 +95,11 @@ To support multiple authentication methods (local, Google, GitHub), we use a **S
 ```typescript
 interface IdentityProvider {
     name: string;
-    
-    // Local authentication
     authenticate(credentials: { email: string; password: string }): Promise<User>;
     
-    // OAuth providers (optional methods for future)
-    getAuthorizationUrl?(state: string, provider: string): string;
-    handleCallback?(code: string, provider: string): Promise<User>;
+    // OAuth providers only
+    getAuthorizationUrl?(state: string): string;
+    handleCallback?(code: string): Promise<User>;
 }
 ```
 
@@ -129,15 +136,14 @@ The `id_token` is a JWT containing user identity claims (`sub`, `email`, `given_
 
 ### Account Linking Strategy
 
-The existing `UserIdentity` model supports multiple providers per user:
+The `UserIdentity` model stores credentials separately from user data:
 
 ```prisma
 model UserIdentity {
     id           String  @id
     userId       String
     provider     String  // "local", "google", "github"
-    providerId   String? // External user ID from OAuth provider
-    passwordHash String? // Only for local provider
+    passwordHash String  // For local; OAuth providers would add providerId
     user         User    @relation(...)
 }
 ```

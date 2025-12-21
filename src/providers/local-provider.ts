@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 import { UnauthorizedHttpResponse } from '@inversifyjs/http-core';
 import { TOKEN } from '../lib/tokens';
 import type { IdentityProvider, LocalCredentials } from './identity-provider';
-import type { PasswordManagerService } from '../services/password-manager-service';
+import type { PasswordUtilityService } from '../services/password-utility-service';
 import type { UserRepository } from '../repositories/user-repository';
 import type { SafeUser } from '../entities/user';
 
@@ -18,7 +18,7 @@ export class LocalIdentityProvider implements IdentityProvider {
 
     constructor(
         @inject(TOKEN.PasswordManagerService)
-        private passwordManager: PasswordManagerService,
+        private passwordManager: PasswordUtilityService,
         @inject(TOKEN.UserRepository)
         private userRepository: UserRepository
     ) {}

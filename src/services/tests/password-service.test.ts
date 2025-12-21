@@ -4,7 +4,7 @@ import { PasswordServiceImpl } from '../password-service';
 import type { UserRepository } from '../../repositories/user-repository';
 import type { PasswordResetTokenRepository } from '../../repositories/password-reset-token-repository';
 import type { RefreshTokenRepository } from '../../repositories/refresh-token-repository';
-import type { PasswordManagerService } from '../password-manager-service';
+import type { PasswordUtilityService } from '../password-utility-service';
 import type { MailService } from '../mail-service';
 import type { SafeUser } from '../../entities/user';
 import type { PasswordResetToken } from '@prisma/client';
@@ -24,7 +24,7 @@ describe('PasswordService', () => {
     let mockUserRepository: Mocked<UserRepository>;
     let mockPasswordResetTokenRepository: Mocked<PasswordResetTokenRepository>;
     let mockRefreshTokenRepository: Mocked<RefreshTokenRepository>;
-    let mockPasswordManager: Mocked<PasswordManagerService>;
+    let mockPasswordManager: Mocked<PasswordUtilityService>;
     let mockMailService: Mocked<MailService>;
 
     beforeAll(async () => {
@@ -42,7 +42,7 @@ describe('PasswordService', () => {
         mockRefreshTokenRepository = unitRef.get<RefreshTokenRepository>(
             TOKEN.RefreshTokenRepository
         );
-        mockPasswordManager = unitRef.get<PasswordManagerService>(
+        mockPasswordManager = unitRef.get<PasswordUtilityService>(
             TOKEN.PasswordManagerService
         );
         mockMailService = unitRef.get<MailService>(TOKEN.MailService);

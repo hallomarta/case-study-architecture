@@ -4,7 +4,7 @@ import {
     NotFoundHttpResponse,
 } from '@inversifyjs/http-core';
 import { TOKEN } from '../lib/tokens';
-import type { PasswordManagerService } from './password-manager-service';
+import type { PasswordUtilityService } from './password-utility-service';
 import type { UserRepository } from '../repositories/user-repository';
 import type { SafeUser } from '../entities/user';
 
@@ -57,7 +57,7 @@ export interface UserService {
 export class UserServiceImpl implements UserService {
     constructor(
         @inject(TOKEN.PasswordManagerService)
-        private passwordManager: PasswordManagerService,
+        private passwordManager: PasswordUtilityService,
         @inject(TOKEN.UserRepository) private userRepository: UserRepository
     ) {}
 

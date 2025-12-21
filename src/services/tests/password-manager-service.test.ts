@@ -1,12 +1,12 @@
 import { TestBed } from '@suites/unit';
-import { PasswordManagerServiceImpl } from '../password-manager-service';
+import { PasswordUtilityServiceImpl } from '../password-utility-service';
 
 describe('PasswordManagerService', () => {
-    let service: PasswordManagerServiceImpl;
+    let service: PasswordUtilityServiceImpl;
 
     beforeAll(async () => {
         const { unit } = await TestBed.solitary(
-            PasswordManagerServiceImpl
+            PasswordUtilityServiceImpl
         ).compile();
         service = unit;
     });

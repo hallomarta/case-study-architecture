@@ -4,6 +4,8 @@
         "outDir": "./dist",
         "sourceMap": true,
         "noImplicitAny": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
         "target": "ES2022",
         "lib": [
             "ES2022"

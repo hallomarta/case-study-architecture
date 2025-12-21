@@ -3,11 +3,10 @@ import { inject, injectable } from 'inversify';
 import { UnauthorizedHttpResponse } from '@inversifyjs/http-core';
 import { TOKEN } from '../lib/tokens';
 import { createLogger } from '../lib/logger';
-import type { Config } from '../types/Config';
 import type { UserRepository } from '../repositories/user-repository';
 import type { PasswordResetTokenRepository } from '../repositories/password-reset-token-repository';
 import type { RefreshTokenRepository } from '../repositories/refresh-token-repository';
-import type { PasswordManagerService } from './password-manager-service';
+import type { PasswordUtilityService } from './password-utility-service';
 import type { MailService } from './mail-service';
 
 const logger = createLogger('PasswordService');
@@ -90,14 +89,13 @@ function sleep(ms: number): Promise<void> {
 @injectable()
 export class PasswordServiceImpl implements PasswordService {
     constructor(
-        @inject(TOKEN.Config) private config: Config,
         @inject(TOKEN.UserRepository) private userRepository: UserRepository,
         @inject(TOKEN.PasswordResetTokenRepository)
         private passwordResetTokenRepository: PasswordResetTokenRepository,
         @inject(TOKEN.RefreshTokenRepository)
         private refreshTokenRepository: RefreshTokenRepository,
         @inject(TOKEN.PasswordManagerService)
-        private passwordManager: PasswordManagerService,
+        private passwordManager: PasswordUtilityService,
         @inject(TOKEN.MailService) private mailService: MailService
     ) {}
 

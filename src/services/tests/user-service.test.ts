@@ -2,7 +2,7 @@ import { TestBed, type Mocked } from '@suites/unit';
 import { UserServiceImpl } from '../user-service';
 import type { UserRepository } from '../../repositories/user-repository';
 import type { SafeUser } from '../../entities/user';
-import type { PasswordManagerService } from '../password-manager-service';
+import type { PasswordUtilityService } from '../password-utility-service';
 import { TOKEN } from '../../lib/tokens';
 import {
     ConflictHttpResponse,
@@ -12,7 +12,7 @@ import {
 describe('UserService', () => {
     let service: UserServiceImpl;
     let mockUserRepository: Mocked<UserRepository>;
-    let mockPasswordManager: Mocked<PasswordManagerService>;
+    let mockPasswordManager: Mocked<PasswordUtilityService>;
 
     beforeAll(async () => {
         const { unit, unitRef } =
@@ -20,7 +20,7 @@ describe('UserService', () => {
 
         service = unit;
         mockUserRepository = unitRef.get<UserRepository>(TOKEN.UserRepository);
-        mockPasswordManager = unitRef.get<PasswordManagerService>(
+        mockPasswordManager = unitRef.get<PasswordUtilityService>(
             TOKEN.PasswordManagerService
         );
     });

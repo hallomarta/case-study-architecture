@@ -16,7 +16,7 @@ import { PasswordResetTokenRepository, PasswordResetTokenRepositoryImpl } from '
 import { AuthGuard } from './src/guards/auth-guard';
 
 import { TOKEN } from './src/lib/tokens';
-import { PasswordManagerService, PasswordManagerServiceImpl } from './src/services/password-manager-service';
+import { PasswordUtilityService, PasswordUtilityServiceImpl } from './src/services/password-utility-service';
 import { UserService, UserServiceImpl } from './src/services/user-service';
 import { PasswordService, PasswordServiceImpl } from './src/services/password-service';
 import { MailService, ConsoleMailService } from './src/services/mail-service';
@@ -58,8 +58,8 @@ diContainer.bind(SocialAuthController).toSelf().inSingletonScope();
 // bind services
 diContainer.bind<UserService>(TOKEN.UserService).to(UserServiceImpl);
 diContainer
-    .bind<PasswordManagerService>(TOKEN.PasswordManagerService)
-    .to(PasswordManagerServiceImpl);
+    .bind<PasswordUtilityService>(TOKEN.PasswordManagerService)
+    .to(PasswordUtilityServiceImpl);
 diContainer
     .bind<PasswordService>(TOKEN.PasswordService)
     .to(PasswordServiceImpl);
